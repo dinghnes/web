@@ -144,14 +144,6 @@
             border: 1px solid #fff;
         }
 
-        .base-icon {
-            position: absolute;
-            top: 60px;
-            font-size: 40px;
-        }
-        #base-player { left: 10px; }
-        #base-enemy { right: 10px; }
-
         /* Unit Production Bar (Middle 15%) */
         #unit-bar {
             flex: 1.5;
@@ -466,9 +458,6 @@
                 </div>
             </div>
             
-            <div id="base-player" class="base-icon">🏰</div>
-            <div id="base-enemy" class="base-icon">👹</div>
-
             <canvas id="gameCanvas"></canvas>
         </div>
 
@@ -768,16 +757,29 @@
                 if (this.flashTime > 0) this.flashTime--;
                 this.frame++;
                 if (Math.abs(this.knockbackVelocity) > 0.1) { this.x += this.knockbackVelocity; this.knockbackVelocity *= 0.8; return; }
+                
+                // Base Collision Logic (Hard Stop)
+                if (this.isEnemy) {
+                    if (this.x < 70) { // Stop at base wall
+                        this.x = 70;
+                        // Force attack if at wall
+                        this.state = 'attack';
+                        if (this.attackTimer <= 0) { this.attack("BASE"); this.attackTimer = this.attackSpeed; } 
+                        else { this.attackTimer--; }
+                        return; // Skip normal targeting
+                    }
+                } else {
+                    // Cat base logic usually not needed as they walk right
+                }
+
                 let target = null; let minDist = Infinity;
                 targets.forEach(t => {
                     let dist = this.isEnemy ? (this.x - (t.x + t.width)) : (t.x - (this.x + this.width));
-                    if (dist < minDist && dist >= -30) { minDist = dist; target = t; }
+                    // Allow hitting enemies slightly inside base for new spawns
+                    if (dist < minDist && dist >= -50) { minDist = dist; target = t; }
                 });
-                if (!target) {
-                    let baseDist = this.isEnemy ? this.x - 50 : (GAME_WIDTH - 50) - (this.x + this.width);
-                    if (baseDist < this.range) target = "BASE";
-                }
-                if (target && minDist <= this.range || target === "BASE") {
+                
+                if (target && minDist <= this.range) {
                     this.state = 'attack';
                     if (this.attackTimer <= 0) { this.attack(target); this.attackTimer = this.attackSpeed; } else { this.attackTimer--; }
                 } else {
@@ -795,13 +797,7 @@
                          gameState.playerHp -= actualDmg;
                          spawnParticle(30, GROUND_Y - 50, 'dmg', actualDmg);
                     } else {
-                        if (gameState.bossInvincible) {
-                             spawnParticle(GAME_WIDTH - 70, GROUND_Y - 80, 'text', 0, "SHIELD!");
-                        } else {
-                             spawnParticle(particleX, particleY, 'pow');
-                             gameState.enemyHp -= actualDmg;
-                             spawnParticle(GAME_WIDTH - 30, GROUND_Y - 50, 'dmg', actualDmg);
-                        }
+                        // Should not happen for enemy attacking base, logic handled above
                     }
                 } else {
                     spawnParticle(particleX, particleY, 'pow');
@@ -908,40 +904,20 @@
                 gameState.enemyHp = 30000; gameState.maxEnemyHp = 30000;
                 document.getElementById('shield-indicator').style.display = 'block';
                 
-                if (unitVal === 'BOSS1') {
-                    gameState.activeList = [...VOCAB_DB.U9, ...VOCAB_DB.U10, ...VOCAB_DB.U11, ...VOCAB_DB.U12];
-                    document.getElementById('level-indicator').innerText = "魔王城 I (U9-U12)";
-                } else if (unitVal === 'BOSS2') {
-                    gameState.activeList = [...VOCAB_DB.U13, ...VOCAB_DB.U14, ...VOCAB_DB.U15, ...VOCAB_DB.U16];
-                    document.getElementById('level-indicator').innerText = "魔王城 II (U13-U16)";
-                } else if (unitVal === 'BOSS3') {
-                    gameState.activeList = [...VOCAB_DB.U17, ...VOCAB_DB.U18, ...VOCAB_DB.U19, ...VOCAB_DB.U20];
-                    document.getElementById('level-indicator').innerText = "魔王城 III (U17-U20)";
-                } else if (unitVal === 'BOSS4') {
-                    gameState.activeList = [...VOCAB_DB.U21, ...VOCAB_DB.U22, ...VOCAB_DB.U23, ...VOCAB_DB.U24];
-                    document.getElementById('level-indicator').innerText = "魔王城 IV (U21-U24)";
-                } else if (unitVal === 'BOSS5') {
-                    gameState.activeList = [...VOCAB_DB.U25, ...VOCAB_DB.U26, ...VOCAB_DB.U27, ...VOCAB_DB.U28];
-                    document.getElementById('level-indicator').innerText = "魔王城 V (U25-U28)";
-                } else if (unitVal === 'BOSS6') {
-                    gameState.activeList = [...VOCAB_DB.U29, ...VOCAB_DB.U30, ...VOCAB_DB.U31, ...VOCAB_DB.U32];
-                    document.getElementById('level-indicator').innerText = "魔王城 VI (U29-U32)";
-                } else if (unitVal === 'BOSS7') {
-                    gameState.activeList = [...VOCAB_DB.U33, ...VOCAB_DB.U34, ...VOCAB_DB.U35, ...VOCAB_DB.U36];
-                    document.getElementById('level-indicator').innerText = "魔王城 VII (U33-U36)";
-                } else if (unitVal === 'BOSS8') {
-                    gameState.activeList = [...VOCAB_DB.U37, ...VOCAB_DB.U38, ...VOCAB_DB.U39, ...VOCAB_DB.U40];
-                    document.getElementById('level-indicator').innerText = "魔王城 VIII (U37-U40)";
-                } else if (unitVal === 'BOSS9') {
-                    gameState.activeList = [...VOCAB_DB.U41, ...VOCAB_DB.U42, ...VOCAB_DB.U43, ...VOCAB_DB.U44];
-                    document.getElementById('level-indicator').innerText = "魔王城 IX (U41-U44)";
-                } else if (unitVal === 'BOSS10') {
-                    gameState.activeList = [...VOCAB_DB.U45, ...VOCAB_DB.U46, ...VOCAB_DB.U47, ...VOCAB_DB.U48];
-                    document.getElementById('level-indicator').innerText = "魔王城 X (U45-U48)";
-                } else if (unitVal === 'BOSS11') {
-                    gameState.activeList = [...VOCAB_DB.U49, ...VOCAB_DB.U50];
-                    document.getElementById('level-indicator').innerText = "魔王城 XI (U49-U50 最終戰)";
-                }
+                // Combine lists based on BOSS selection
+                if (unitVal === 'BOSS1') gameState.activeList = [...VOCAB_DB.U9, ...VOCAB_DB.U10, ...VOCAB_DB.U11, ...VOCAB_DB.U12];
+                else if (unitVal === 'BOSS2') gameState.activeList = [...VOCAB_DB.U13, ...VOCAB_DB.U14, ...VOCAB_DB.U15, ...VOCAB_DB.U16];
+                else if (unitVal === 'BOSS3') gameState.activeList = [...VOCAB_DB.U17, ...VOCAB_DB.U18, ...VOCAB_DB.U19, ...VOCAB_DB.U20];
+                else if (unitVal === 'BOSS4') gameState.activeList = [...VOCAB_DB.U21, ...VOCAB_DB.U22, ...VOCAB_DB.U23, ...VOCAB_DB.U24];
+                else if (unitVal === 'BOSS5') gameState.activeList = [...VOCAB_DB.U25, ...VOCAB_DB.U26, ...VOCAB_DB.U27, ...VOCAB_DB.U28];
+                else if (unitVal === 'BOSS6') gameState.activeList = [...VOCAB_DB.U29, ...VOCAB_DB.U30, ...VOCAB_DB.U31, ...VOCAB_DB.U32];
+                else if (unitVal === 'BOSS7') gameState.activeList = [...VOCAB_DB.U33, ...VOCAB_DB.U34, ...VOCAB_DB.U35, ...VOCAB_DB.U36];
+                else if (unitVal === 'BOSS8') gameState.activeList = [...VOCAB_DB.U37, ...VOCAB_DB.U38, ...VOCAB_DB.U39, ...VOCAB_DB.U40];
+                else if (unitVal === 'BOSS9') gameState.activeList = [...VOCAB_DB.U41, ...VOCAB_DB.U42, ...VOCAB_DB.U43, ...VOCAB_DB.U44];
+                else if (unitVal === 'BOSS10') gameState.activeList = [...VOCAB_DB.U45, ...VOCAB_DB.U46, ...VOCAB_DB.U47, ...VOCAB_DB.U48];
+                else if (unitVal === 'BOSS11') gameState.activeList = [...VOCAB_DB.U49, ...VOCAB_DB.U50];
+                
+                document.getElementById('level-indicator').innerText = "魔王城決戰";
             } else {
                 // Normal Mode
                 gameState.mode = 'NORMAL';
@@ -949,11 +925,9 @@
                 gameState.bossInvincible = false;
                 document.getElementById('shield-indicator').style.display = 'none';
                 
-                // Select List from DB
                 if (VOCAB_DB[unitVal]) {
                     gameState.activeList = VOCAB_DB[unitVal];
                 } else {
-                    // Fallback
                     gameState.activeList = VOCAB_DB.U9;
                 }
                 
@@ -1115,7 +1089,7 @@
             if (gameState.money >= unit.cost && now >= gameState.unitCooldowns[index]) {
                 gameState.money -= unit.cost;
                 gameState.unitCooldowns[index] = now + unit.cd;
-                const cat = new Entity(60, 0, false, unit.name);
+                const cat = new Entity(10, 0, false, unit.name); // Spawn at x=10 inside castle
                 gameState.cats.push(cat);
                 updateHUD();
                 const btn = document.getElementById(`btn-${index+1}`);
@@ -1191,12 +1165,47 @@
             ctx.fillStyle = grad; ctx.fillRect(0,0, canvas.width, canvas.height);
             ctx.fillStyle = '#654321'; ctx.fillRect(0, GROUND_Y * scaleY, canvas.width, 5 * scaleY);
             ctx.fillStyle = '#8B4513'; ctx.fillRect(0, (GROUND_Y + 5) * scaleY, canvas.width, (GAME_HEIGHT - GROUND_Y) * scaleY);
-            ctx.fillStyle = '#444'; ctx.fillRect(0, (GROUND_Y - 120) * scaleY, 60 * scaleX, 120 * scaleY);
-            ctx.fillStyle = gameState.bossInvincible ? '#000' : '#660000'; ctx.fillRect(canvas.width - 60 * scaleX, (GROUND_Y - 150) * scaleY, 60 * scaleX, 150 * scaleY);
+            
+            // Draw Castles
+            // Player Castle (Left)
+            const castleX = 0; const castleY = (GROUND_Y - 150) * scaleY;
+            const castleW = 80 * scaleX; const castleH = 150 * scaleY;
+            ctx.fillStyle = '#EEE'; // Wall
+            ctx.fillRect(castleX, castleY, castleW, castleH);
+            ctx.fillStyle = '#AAA'; // Details
+            ctx.fillRect(castleX + 10*scaleX, castleY, 10*scaleX, castleH);
+            ctx.fillRect(castleX + 30*scaleX, castleY, 10*scaleX, castleH);
+            ctx.fillRect(castleX + 50*scaleX, castleY, 10*scaleX, castleH);
+            // Gate
+            ctx.fillStyle = '#422';
+            ctx.beginPath(); ctx.arc(castleX + castleW/2, castleY + castleH, 25*scaleX, Math.PI, 0); ctx.fill();
+            // Roof
+            ctx.fillStyle = '#3F51B5';
+            ctx.beginPath(); ctx.moveTo(castleX - 10*scaleX, castleY); ctx.lineTo(castleX + castleW + 10*scaleX, castleY); ctx.lineTo(castleX + castleW/2, castleY - 40*scaleY); ctx.fill();
+            // Flag
+            ctx.strokeStyle = '#fff'; ctx.lineWidth=2;
+            ctx.beginPath(); ctx.moveTo(castleX + castleW/2, castleY - 40*scaleY); ctx.lineTo(castleX + castleW/2, castleY - 70*scaleY); ctx.stroke();
+            ctx.fillStyle = 'yellow'; ctx.beginPath(); ctx.moveTo(castleX + castleW/2, castleY - 70*scaleY); ctx.lineTo(castleX + castleW/2 + 20*scaleX, castleY - 60*scaleY); ctx.lineTo(castleX + castleW/2, castleY - 50*scaleY); ctx.fill();
+
+            // Enemy Castle (Right)
+            const eCastleW = 80 * scaleX; const eCastleH = 180 * scaleY;
+            const eCastleX = canvas.width - eCastleW; const eCastleY = (GROUND_Y - 180) * scaleY;
+            ctx.fillStyle = '#330000'; // Dark Red
+            ctx.fillRect(eCastleX, eCastleY, eCastleW, eCastleH);
+            // Spikes
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.moveTo(eCastleX, eCastleY); ctx.lineTo(eCastleX + 20*scaleX, eCastleY - 30*scaleY); ctx.lineTo(eCastleX + 40*scaleX, eCastleY); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(eCastleX + 40*scaleX, eCastleY); ctx.lineTo(eCastleX + 60*scaleX, eCastleY - 30*scaleY); ctx.lineTo(eCastleX + 80*scaleX, eCastleY); ctx.fill();
+            // Windows
+            ctx.fillStyle = '#FFEB3B'; // Glowing eyes
+            ctx.fillRect(eCastleX + 15*scaleX, eCastleY + 50*scaleY, 15*scaleX, 15*scaleY);
+            ctx.fillRect(eCastleX + 50*scaleX, eCastleY + 50*scaleY, 15*scaleX, 15*scaleY);
+            // Shield
             if (gameState.bossInvincible) {
-                ctx.save(); ctx.strokeStyle = 'cyan'; ctx.lineWidth = 3;
-                ctx.beginPath(); ctx.arc(canvas.width - 30*scaleX, (GROUND_Y - 75)*scaleY, 80*scaleX, 0, Math.PI*2); ctx.stroke(); ctx.restore();
+                ctx.save(); ctx.strokeStyle = 'cyan'; ctx.lineWidth = 3; ctx.shadowBlur = 10; ctx.shadowColor = 'cyan';
+                ctx.beginPath(); ctx.arc(eCastleX + eCastleW/2, eCastleY + eCastleH/2, 100*scaleX, 0, Math.PI*2); ctx.stroke(); ctx.restore();
             }
+
             gameState.cats.forEach(c => c.draw(ctx, scaleX, scaleY));
             gameState.enemies.forEach(e => e.draw(ctx, scaleX, scaleY));
             gameState.particles.forEach(p => p.draw(ctx, scaleX, scaleY));
