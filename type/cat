@@ -1,0 +1,2011 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>西寧貓咪單字大戰爭 - 西寧英雄榜 (V3)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Roboto+Mono:wght@500&display=swap');
+
+        :root {
+            --bg-sky: #A0D8EF;
+            --bg-ground: #E0E0E0;
+            --ui-panel: #222;
+            --cat-color: #fff;
+            --dog-color: #DDAA77;
+            --base-hp: #4CAF50;
+            --enemy-hp: #F44336;
+            --money-color: #FFD700;
+            --score-color: #00E676;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-sky);
+            touch-action: none;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Battle Area (Top 55%) */
+        #canvas-container {
+            flex: 5.5;
+            position: relative;
+            background: linear-gradient(to bottom, #87CEEB 70%, #dcdcdc 70%);
+            overflow: hidden;
+            border-bottom: 2px solid #000;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* HUD */
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 0;
+            width: 100%;
+            padding: 0 10px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hud-left-group {
+            display: flex;
+            flex-direction: column;
+            width: 30%;
+        }
+
+        #level-indicator {
+            color: #fff;
+            font-weight: bold;
+            font-size: 1.2rem;
+            text-shadow: 2px 2px 0 #000;
+            margin-bottom: 5px;
+            background: rgba(0,0,0,0.5);
+            padding: 2px 8px;
+            border-radius: 5px;
+            align-self: flex-start;
+        }
+
+        .hp-bar-container {
+            width: 100%;
+            height: 20px;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hp-bar-container.right {
+            width: 30%;
+        }
+
+        .hp-bar {
+            height: 100%;
+            width: 100%;
+            transition: width 0.2s;
+        }
+
+        #player-hp { background-color: var(--base-hp); }
+        #enemy-hp { background-color: var(--enemy-hp); }
+        
+        #money-display {
+            position: absolute;
+            top: 50px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: var(--money-color);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border: 2px solid #fff;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        #score-display {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--score-color);
+            background: rgba(0,0,0,0.8);
+            padding: 5px 20px;
+            border-radius: 20px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border: 2px solid #fff;
+            text-shadow: 1px 1px 0 #000;
+            z-index: 11;
+        }
+        
+        #shield-indicator {
+            position: absolute;
+            top: 100px;
+            right: 10px;
+            color: cyan;
+            font-weight: bold;
+            font-size: 1.2rem;
+            text-shadow: 0 0 5px blue;
+            display: none;
+            animation: pulse 1s infinite;
+        }
+        
+        #words-remaining {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            background: rgba(0,0,0,0.4);
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .base-icon {
+            position: absolute;
+            top: 60px;
+            font-size: 40px;
+        }
+        #base-player { left: 10px; }
+        #base-enemy { right: 10px; }
+
+        /* Unit Production Bar (Middle 15%) */
+        #unit-bar {
+            flex: 1.5;
+            background: #444;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 5px;
+            box-shadow: inset 0 0 10px #000;
+        }
+
+        .unit-btn {
+            position: relative;
+            width: 70px;
+            height: 70px;
+            background: #eee;
+            border: 3px solid #888;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s;
+        }
+
+        .unit-btn:active { transform: scale(0.95); }
+        
+        .unit-btn.disabled {
+            filter: grayscale(100%) brightness(50%);
+            cursor: not-allowed;
+            border-color: #444;
+        }
+
+        .unit-btn.cooldown::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            border-radius: 8px;
+            animation: sweep var(--cd) linear forwards;
+            transform-origin: bottom;
+        }
+
+        @keyframes sweep {
+            0% { height: 100%; }
+            100% { height: 0%; }
+        }
+
+        .unit-icon { font-size: 24px; }
+        .unit-cost { font-size: 12px; font-weight: bold; color: #333; margin-top: 2px;}
+        .key-hint { 
+            position: absolute; 
+            top: 2px; left: 4px; 
+            font-size: 10px; 
+            color: #555; 
+            font-weight: bold;
+            border: 1px solid #999;
+            padding: 0 3px;
+            border-radius: 3px;
+        }
+
+        /* Control Panel (Bottom 30%) */
+        #control-panel {
+            flex: 3;
+            background-color: var(--ui-panel);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            color: white;
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.5);
+            z-index: 20;
+        }
+
+        #word-info {
+            text-align: center;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .chinese-hint {
+            color: #FFD700;
+            font-weight: bold;
+            display: block;
+            font-size: 1.6rem;
+            margin-bottom: 5px;
+        }
+
+        .english-hint {
+            color: #A0D8EF;
+            margin-left: 15px;
+            font-family: 'Roboto Mono', monospace;
+        }
+        
+        #target-word-display {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 1.4rem;
+            color: #aaa;
+            letter-spacing: 2px;
+            min-height: 1.6rem;
+            display: inline-block;
+        }
+
+        /* Speaker Button */
+        #speaker-btn {
+            display: inline-block;
+            margin-left: 10px;
+            background: none;
+            border: 2px solid #666;
+            color: #aaa;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            vertical-align: middle;
+            font-size: 16px;
+            line-height: 26px;
+            transition: all 0.2s;
+        }
+        #speaker-btn:hover { background: #444; color: #fff; border-color: #fff; }
+        #speaker-btn:active { transform: scale(0.9); }
+        #speaker-btn.speaking { color: #00E676; border-color: #00E676; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .char-correct { color: #00E676; }
+        .char-pending { color: #666; }
+        
+        .reward-preview {
+            font-size: 0.9rem;
+            color: #00E676;
+            display: block;
+            margin-top: 5px;
+        }
+
+        #input-area {
+            display: flex;
+            width: 90%;
+            max-width: 500px;
+            gap: 10px;
+            position: relative;
+        }
+
+        #answer-input {
+            flex: 1;
+            padding: 10px;
+            font-size: 1.2rem;
+            border: 3px solid #666;
+            border-radius: 8px;
+            background: #222;
+            color: white;
+            font-family: 'Roboto Mono', monospace;
+            text-transform: capitalize;
+            text-align: center;
+        }
+        
+        #answer-input:focus {
+            outline: none;
+            border-color: #FFD700;
+        }
+        
+        #answer-input.locked {
+            pointer-events: none;
+        }
+        
+        #answer-input.shake {
+            animation: shake 0.3s;
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+
+        /* Screens */
+        .overlay-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            color: white;
+            text-align: center;
+        }
+
+        .overlay-screen h1 { font-size: 2.5rem; margin-bottom: 10px; color: #FFD700; }
+        .overlay-screen p { font-size: 1.1rem; max-width: 600px; line-height: 1.5; margin-bottom: 20px; color: #ccc;}
+        
+        .start-btn {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            background: #e91e63;
+            color: white;
+            border: 3px solid white;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        .start-btn:hover { background: #c2185b; }
+        .start-btn.next { background: #00E676; color: #000; }
+        .start-btn.rank-btn { background: #FF9800; }
+        .start-btn.loading { opacity: 0.5; pointer-events: none; }
+
+        /* Unit Dropdown Selector */
+        .unit-select-container {
+            margin-bottom: 20px;
+            width: 90%;
+            max-width: 400px;
+        }
+        
+        select {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2rem;
+            background: rgba(255,255,255,0.9);
+            border: 2px solid #FFD700;
+            border-radius: 10px;
+            font-family: 'Noto Sans TC', sans-serif;
+            color: #333;
+            outline: none;
+            cursor: pointer;
+        }
+        
+        option {
+            background: #fff;
+            color: #000;
+        }
+        
+        optgroup {
+            font-weight: bold;
+            color: #555;
+            background: #eee;
+        }
+
+        .floating-text {
+            position: absolute;
+            font-weight: bold;
+            pointer-events: none;
+            animation: floatUp 1s forwards;
+            z-index: 50;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        /* Leaderboard Styles */
+        .leaderboard-container {
+            width: 90%;
+            max-width: 600px;
+            background: rgba(0,0,0,0.8);
+            border: 2px solid #FFD700;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: white;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid #444;
+        }
+
+        th {
+            color: #FFD700;
+            font-size: 1.2rem;
+        }
+
+        .rank-1 { color: #FFD700; font-weight: bold; font-size: 1.2rem; }
+        .rank-2 { color: #C0C0C0; font-weight: bold; }
+        .rank-3 { color: #CD7F32; font-weight: bold; }
+        .loading-text { color: #fff; font-size: 1.2rem; padding: 20px; }
+        .error-text { color: #F44336; padding: 10px; font-weight: bold;}
+
+        .input-group {
+            margin: 20px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        #player-name-input {
+            padding: 10px 20px;
+            font-size: 1.5rem;
+            border-radius: 10px;
+            border: none;
+            text-align: center;
+            width: 200px;
+        }
+        
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-30px); }
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            .chinese-hint { font-size: 1.3rem; }
+            #answer-input { font-size: 1rem; }
+            .unit-btn { width: 60px; height: 60px; }
+            .hp-bar-container { width: 100%; }
+            .hp-bar-container.right { width: 40%; }
+            #money-display { font-size: 1.2rem; top: 45px; }
+            #level-indicator { font-size: 1rem; }
+            #words-remaining { font-size: 0.8rem; }
+            #score-display { font-size: 1rem; padding: 2px 10px; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- Battle Area -->
+        <div id="canvas-container">
+            <div id="hud">
+                <div class="hud-left-group">
+                    <div id="level-indicator">Level 1/3</div>
+                    <div class="hp-bar-container">
+                        <div id="player-hp" class="hp-bar"></div>
+                    </div>
+                </div>
+                
+                <div id="score-display">Score: 0</div>
+                <div id="words-remaining">剩餘單字: 0</div>
+                
+                <div id="money-display">$0 / 2000</div>
+                <div id="shield-indicator">🛡️ 無敵護盾 (消除單字以解除)</div>
+                
+                <div class="hp-bar-container right">
+                    <div id="enemy-hp" class="hp-bar"></div>
+                </div>
+            </div>
+            
+            <div id="base-player" class="base-icon">🏰</div>
+            <div id="base-enemy" class="base-icon">👹</div>
+
+            <canvas id="gameCanvas"></canvas>
+        </div>
+
+        <!-- Unit Production Bar -->
+        <div id="unit-bar">
+            <div class="unit-btn disabled" id="btn-1" onclick="tryBuyUnit(0)">
+                <span class="key-hint">1</span>
+                <span class="unit-icon">🐱</span>
+                <span class="unit-cost">$50</span>
+            </div>
+            <div class="unit-btn disabled" id="btn-2" onclick="tryBuyUnit(1)">
+                <span class="key-hint">2</span>
+                <span class="unit-icon">🛡️</span>
+                <span class="unit-cost">$150</span>
+            </div>
+            <div class="unit-btn disabled" id="btn-3" onclick="tryBuyUnit(2)">
+                <span class="key-hint">3</span>
+                <span class="unit-icon">🦎</span>
+                <span class="unit-cost">$300</span>
+            </div>
+            <div class="unit-btn disabled" id="btn-4" onclick="tryBuyUnit(3)">
+                <span class="key-hint">4</span>
+                <span class="unit-icon">🦵</span>
+                <span class="unit-cost">$600</span>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div id="control-panel">
+            <div id="word-info">
+                <span id="current-meaning" class="chinese-hint">載入中...</span>
+                <div id="target-word-display"></div>
+                <button id="speaker-btn" onclick="manualSpeak()">🔊</button>
+                <span id="reward-preview" class="reward-preview">獎勵: $150</span>
+            </div>
+            <div id="input-area">
+                <input type="text" id="answer-input" placeholder="看單字打字..." autocomplete="off" spellcheck="false">
+            </div>
+        </div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="overlay-screen">
+        <h1>西寧貓咪單字大戰爭</h1>
+        <h2>西寧英雄榜 (V3版)</h2>
+        
+        <div class="unit-select-container">
+            <select id="unit-select">
+                <optgroup label="Boss Challenge (魔王挑戰)">
+                    <option value="BOSS_BASIC">🏰 基礎魔王城 (Unit 1-12)</option>
+                    <option value="BOSS_INTER">🏰 中級魔王城 (Unit 13-24)</option>
+                    <option value="BOSS_ADV">🏰 進階魔王城 (Unit 25-36)</option>
+                    <option value="BOSS_ALL" style="color:red; font-weight:bold;">☠️ 終極魔王城 (All Units)</option>
+                </optgroup>
+                <optgroup label="Basic Level (基礎級)">
+                    <option value="U1" selected>Unit 1: Dinosaurs</option>
+                    <option value="U2">Unit 2: A Dinner Party</option>
+                    <option value="U3">Unit 3: My Dear Friends</option>
+                    <option value="U4">Unit 4: A Happy Way to Learn</option>
+                    <option value="U5">Unit 5: Advertisement</option>
+                    <option value="U6">Unit 6: Journal</option>
+                    <option value="U7">Unit 7: Plastic Bags</option>
+                    <option value="U8">Unit 8: Cooking for Children</option>
+                    <option value="U9">Unit 9: Keith Haring</option>
+                    <option value="U10">Unit 10: Visiting</option>
+                    <option value="U11">Unit 11: Comic Festival</option>
+                    <option value="U12">Unit 12: School Trip</option>
+                </optgroup>
+                <optgroup label="Intermediate Level (中級)">
+                    <option value="U13">Unit 13: The Less You Know</option>
+                    <option value="U14">Unit 14: Insects</option>
+                    <option value="U15">Unit 15: Diary</option>
+                    <option value="U16">Unit 16: Our Sun and its Twin</option>
+                    <option value="U17">Unit 17: Daydreamer</option>
+                    <option value="U18">Unit 18: Komodo</option>
+                    <option value="U19">Unit 19: Flea Market</option>
+                    <option value="U20">Unit 20: Bus Schedule</option>
+                    <option value="U21">Unit 21: Greetings from Spain</option>
+                    <option value="U22">Unit 22: Online Learning</option>
+                    <option value="U23">Unit 23: The Parrots</option>
+                    <option value="U24">Unit 24: A Trip to Osaka</option>
+                </optgroup>
+                <optgroup label="Advanced Level (進階級)">
+                    <option value="U25">Unit 25: Vampires and Dracula</option>
+                    <option value="U26">Unit 26: Blue Light</option>
+                    <option value="U27">Unit 27: The True Value of Wealth</option>
+                    <option value="U28">Unit 28: Dealing with Difficult People</option>
+                    <option value="U29">Unit 29: Summer Plans</option>
+                    <option value="U30">Unit 30: Vincent Van Gogh</option>
+                    <option value="U31">Unit 31: Joining a Club</option>
+                    <option value="U32">Unit 32: Bruce and the Spider</option>
+                    <option value="U33">Unit 33: Business Report</option>
+                    <option value="U34">Unit 34: Science News</option>
+                    <option value="U35">Unit 35: Preface - Jack White</option>
+                    <option value="U36">Unit 36: A Computer that Writes Poetry</option>
+                </optgroup>
+            </select>
+        </div>
+
+        <p>
+            <b>遊戲規則:</b><br>
+            1. <b>英打特訓:</b> 選擇關卡，正確輸入單字賺取金錢。<br>
+            2. 召喚貓咪部隊，攻破敵人城堡。<br>
+            3. <b>魔王模式</b> 將遭遇無盡單字與強力敵人！<br>
+        </p>
+        <div>
+            <button class="start-btn" onclick="startGame(1)">開始戰鬥!</button>
+            <button class="start-btn rank-btn" onclick="showLeaderboard()">🏆 西寧英雄榜</button>
+        </div>
+    </div>
+
+    <!-- Leaderboard Screen -->
+    <div id="leaderboard-screen" class="overlay-screen" style="display: none;">
+        <h1>🏆 西寧英雄榜 🏆</h1>
+        <div class="leaderboard-container">
+            <table id="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>排名</th>
+                        <th>英雄</th>
+                        <th>分數</th>
+                        <th>日期</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-body">
+                    <!-- Rows injected by JS -->
+                </tbody>
+            </table>
+        </div>
+        <button class="start-btn" onclick="showStartScreenFromLeaderboard()">返回主選單</button>
+    </div>
+
+    <!-- Level Complete Screen -->
+    <div id="level-complete-screen" class="overlay-screen" style="display: none;">
+        <h1>關卡完成!</h1>
+        <p>敵人基地已摧毀，準備進入下一關！</p>
+        <button class="start-btn next" onclick="nextLevel()">下一關</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over-screen" class="overlay-screen" style="display: none;">
+        <h1 id="end-title">勝利!</h1>
+        <p id="end-score-text">分數結算中...</p>
+        
+        <div class="input-group">
+            <label>留下你的大名:</label>
+            <input type="text" id="player-name-input" maxlength="8" placeholder="輸入名字">
+        </div>
+        
+        <button id="submit-score-btn" class="start-btn" onclick="submitScore()">登記並回主選單</button>
+    </div>
+
+    <script>
+        // --- 設定 (Google Apps Script URL) ---
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVoVjQ0h65Avgad6mg4BV05SQx3r17mI03pUdic8N94kPggvWKYSj81ejJzWZfjtEv/exec'; 
+
+        // --- Data: 36 Units with Chinese Translations ---
+        const UNIT_DATA = {
+            "U1": [
+                {en: "Dinosaur", zh: "恐龍"}, {en: "Close", zh: "關閉/靠近"}, {en: "Learn", zh: "學習"}, {en: "Earth", zh: "地球"},
+                {en: "Past", zh: "過去"}, {en: "Appear", zh: "出現"}, {en: "Million", zh: "百萬"}, {en: "Insect", zh: "昆蟲"},
+                {en: "Except", zh: "除了...之外"}, {en: "Die", zh: "死亡"}, {en: "Believe", zh: "相信"}, {en: "Space", zh: "空間/太空"},
+                {en: "Hit", zh: "打擊/碰撞"}, {en: "Wave", zh: "揮手/波浪"}, {en: "Dirty", zh: "骯髒的"}, {en: "Change", zh: "改變"},
+                {en: "Knowledge", zh: "知識"}, {en: "Ground", zh: "地面"}, {en: "Leave", zh: "離開/留下"}, {en: "Include", zh: "包括"},
+                {en: "Travel", zh: "旅行"}
+            ],
+            "U2": [
+                {en: "Plan", zh: "計畫"}, {en: "Weekend", zh: "週末"}, {en: "Interested", zh: "感興趣的"}, {en: "Sound", zh: "聲音/聽起來"},
+                {en: "Idea", zh: "主意"}, {en: "Menu", zh: "菜單"}, {en: "Dessert", zh: "甜點"}, {en: "Tooth", zh: "牙齒"},
+                {en: "Chocolate", zh: "巧克力"}, {en: "Perhaps", zh: "也許"}, {en: "Snack", zh: "點心"}, {en: "Hungry", zh: "飢餓的"},
+                {en: "Family", zh: "家庭"}, {en: "Yard", zh: "庭院"}, {en: "Enjoy", zh: "享受"}, {en: "Weather", zh: "天氣"},
+                {en: "Set", zh: "設定/一組"}, {en: "Date", zh: "日期/約會"}, {en: "Calendar", zh: "日曆"}, {en: "Look forward to", zh: "期待"},
+                {en: "Soon", zh: "很快"}
+            ],
+            "U3": [
+                {en: "Barbecue", zh: "烤肉"}, {en: "Farmer", zh: "農夫"}, {en: "Market", zh: "市場"}, {en: "Chicken", zh: "雞肉"},
+                {en: "Beef", zh: "牛肉"}, {en: "Pork", zh: "豬肉"}, {en: "Plus", zh: "加上/正的"}, {en: "Bake", zh: "烘烤"},
+                {en: "Side", zh: "邊/面"}, {en: "Map", zh: "地圖"}, {en: "Letter", zh: "信/字母"}, {en: "Delicious", zh: "美味的"},
+                {en: "Bridge", zh: "橋"}, {en: "Along", zh: "沿著"}, {en: "Straight", zh: "直的"}, {en: "Doctor", zh: "醫生"},
+                {en: "Parking lot", zh: "停車場"}, {en: "Cross", zh: "穿越/十字"}, {en: "Theater", zh: "劇院"}, {en: "Large", zh: "大的"},
+                {en: "Balcony", zh: "陽台"}
+            ],
+            "U4": [
+                {en: "Happy", zh: "快樂的"}, {en: "Fence", zh: "圍籬"}, {en: "End", zh: "結束"}, {en: "Play", zh: "玩/播放"},
+                {en: "Math", zh: "數學"}, {en: "Say", zh: "說"}, {en: "Study", zh: "研讀"}, {en: "Fun", zh: "樂趣"},
+                {en: "Game", zh: "遊戲"}, {en: "Gym", zh: "體育館"}, {en: "Climb", zh: "攀爬"}, {en: "Swim", zh: "游泳"},
+                {en: "When it comes to", zh: "當提到"}, {en: "Fast", zh: "快速的"}, {en: "Story", zh: "故事"}, {en: "Stand", zh: "站立/忍受"},
+                {en: "Together", zh: "一起"}
+            ],
+            "U5": [
+                {en: "Wish", zh: "希望"}, {en: "Pet", zh: "寵物"}, {en: "Smell", zh: "聞/氣味"}, {en: "Fresh", zh: "新鮮的"},
+                {en: "Complain", zh: "抱怨"}, {en: "Sweet", zh: "甜的"}, {en: "Mouth", zh: "嘴巴"}, {en: "Fault", zh: "錯誤/缺點"},
+                {en: "Meat", zh: "肉類"}, {en: "Moment", zh: "時刻"}, {en: "Total", zh: "總計"}, {en: "Health", zh: "健康"},
+                {en: "Problem", zh: "問題"}, {en: "Taste", zh: "品嚐/味道"}, {en: "Habit", zh: "習慣"}, {en: "Brush", zh: "刷/刷子"},
+                {en: "Twice", zh: "兩次"}, {en: "Smile", zh: "微笑"}, {en: "Pot", zh: "鍋子"}, {en: "Charge", zh: "收費/充電"},
+                {en: "Fee", zh: "費用"}
+            ],
+            "U6": [
+                {en: "Nervous", zh: "緊張的"}, {en: "Grade", zh: "年級/成績"}, {en: "Uniform", zh: "制服"}, {en: "Weak", zh: "虛弱的"},
+                {en: "Compare", zh: "比較"}, {en: "Simple", zh: "簡單的"}, {en: "Assume", zh: "假設"}, {en: "Hang out", zh: "閒晃"},
+                {en: "Friendly", zh: "友善的"}, {en: "Driver", zh: "司機"}, {en: "Copy", zh: "複製"}, {en: "Cover", zh: "覆蓋"},
+                {en: "Pray", zh: "祈禱"}, {en: "Proud", zh: "驕傲的"}, {en: "Example", zh: "例子"}, {en: "Elementary school", zh: "小學"},
+                {en: "Boring", zh: "無聊的"}
+            ],
+            "U7": [
+                {en: "Supermarket", zh: "超市"}, {en: "Either", zh: "兩者之一"}, {en: "Borrow", zh: "借入"}, {en: "Least", zh: "最少的"},
+                {en: "Carry", zh: "攜帶"}, {en: "Heavy", zh: "重的"}, {en: "Wet", zh: "濕的"}, {en: "Thin", zh: "瘦的/薄的"},
+                {en: "Stupid", zh: "愚笨的"}, {en: "Dollar", zh: "元"}, {en: "Excuse", zh: "藉口/原諒"}, {en: "Nothing", zh: "沒什麼"},
+                {en: "Environment", zh: "環境"}, {en: "Be used to", zh: "習慣於"}, {en: "Probably", zh: "大概"}, {en: "Agree", zh: "同意"},
+                {en: "Government", zh: "政府"}, {en: "Remind", zh: "提醒"}
+            ],
+            "U8": [
+                {en: "Help", zh: "幫忙"}, {en: "Kitchen", zh: "廚房"}, {en: "Prepare", zh: "準備"}, {en: "Meal", zh: "餐"},
+                {en: "Aged", zh: "年歲的"}, {en: "Hope", zh: "希望"}, {en: "Independent", zh: "獨立的"}, {en: "Although", zh: "雖然"},
+                {en: "Young", zh: "年輕的"}, {en: "Cook", zh: "烹飪/廚師"}, {en: "Enough", zh: "足夠的"}, {en: "Oven", zh: "烤箱"},
+                {en: "Knife", zh: "刀子"}, {en: "Vegetable", zh: "蔬菜"}, {en: "Dish", zh: "盤子/菜餚"}, {en: "Clean up", zh: "清理"},
+                {en: "Information", zh: "資訊"}, {en: "Child", zh: "孩子"}, {en: "Local", zh: "當地的"}, {en: "Library", zh: "圖書館"},
+                {en: "Internet", zh: "網際網路"}, {en: "Patient", zh: "有耐心的/病人"}
+            ],
+            "U9": [
+                {en: "Symbol", zh: "象徵/符號"}, {en: "Famous", zh: "著名的"}, {en: "Face", zh: "臉/面對"}, {en: "Because", zh: "因為"},
+                {en: "Different", zh: "不同的"}, {en: "Equal", zh: "平等的"}, {en: "Show", zh: "展示/表演"}, {en: "Hold up", zh: "舉起/支撐"},
+                {en: "Heart", zh: "心"}, {en: "Power", zh: "力量/權力"}, {en: "Human", zh: "人類"}, {en: "Feel", zh: "感覺"},
+                {en: "Joy", zh: "喜悅"}, {en: "Line", zh: "線/排隊"}, {en: "Around", zh: "周圍"}, {en: "Call", zh: "打電話/呼叫"},
+                {en: "Energy", zh: "能量/精力"}, {en: "Paint", zh: "繪畫/顏料"}, {en: "Sick", zh: "生病的"}, {en: "Important", zh: "重要的"},
+                {en: "Hug", zh: "擁抱"}
+            ],
+            "U10": [
+                {en: "Guess", zh: "猜測"}, {en: "Visit", zh: "拜訪"}, {en: "Celebrate", zh: "慶祝"}, {en: "In fact", zh: "事實上"},
+                {en: "Miss", zh: "想念/錯過"}, {en: "Since", zh: "自從/因為"}, {en: "As well as", zh: "以及"}, {en: "Mark", zh: "標記/分數"},
+                {en: "Be born", zh: "出生"}, {en: "Wait", zh: "等待"}, {en: "Already", zh: "已經"}, {en: "Ticket", zh: "票"},
+                {en: "Arrive", zh: "抵達"}, {en: "Party", zh: "派對/黨派"}, {en: "Once", zh: "曾經/一次"}, {en: "Public", zh: "公眾的"},
+                {en: "Excited", zh: "興奮的"}, {en: "Activity", zh: "活動"}, {en: "Flight", zh: "班機/飛行"}, {en: "Niece", zh: "姪女/外甥女"},
+                {en: "Nephew", zh: "姪子/外甥"}, {en: "Department store", zh: "百貨公司"}, {en: "Forget", zh: "忘記"}, {en: "Return", zh: "返回/歸還"}
+            ],
+            "U11": [
+                {en: "Comic", zh: "漫畫"}, {en: "Town", zh: "城鎮"}, {en: "Festival", zh: "節日"}, {en: "Character", zh: "角色/性格"},
+                {en: "Latest", zh: "最新的"}, {en: "Popular", zh: "受歡迎的"}, {en: "Video", zh: "影片"}, {en: "Rare", zh: "罕見的"},
+                {en: "Collect", zh: "收集"}, {en: "Hard", zh: "困難的/硬的"}, {en: "Welcome", zh: "歡迎"}, {en: "Guest", zh: "客人"},
+                {en: "Win", zh: "贏"}, {en: "Magic", zh: "魔術"}, {en: "Successful", zh: "成功的"}, {en: "Early", zh: "早的"},
+                {en: "Half", zh: "一半"}, {en: "Price", zh: "價格"}, {en: "Sell", zh: "賣"}
+            ],
+            "U12": [
+                {en: "Afternoon", zh: "下午"}, {en: "Downtown", zh: "市中心"}, {en: "Hiking", zh: "健行"}, {en: "Mountain", zh: "山"},
+                {en: "Picnic", zh: "野餐"}, {en: "Seafood", zh: "海鮮"}, {en: "Candy", zh: "糖果"}, {en: "Island", zh: "島嶼"},
+                {en: "Pool", zh: "池子/撞球"}, {en: "Notice", zh: "注意/通知"}, {en: "Breakfast", zh: "早餐"}, {en: "Sharp", zh: "尖銳的/準時"},
+                {en: "Draw", zh: "畫/吸引"}, {en: "Thirsty", zh: "口渴的"}, {en: "Prize", zh: "獎品"}, {en: "Winner", zh: "贏家"},
+                {en: "Dry", zh: "乾的"}, {en: "Cap", zh: "棒球帽"}, {en: "Lend", zh: "借出"}, {en: "Pack", zh: "打包"}
+            ],
+            // --- Intermediate Level ---
+            "U13": [
+                {en: "Less", zh: "較少的"}, {en: "Neighbor", zh: "鄰居"}, {en: "Helpful", zh: "有幫助的"}, {en: "Street", zh: "街道"},
+                {en: "Disappear", zh: "消失"}, {en: "Concern", zh: "關心/擔憂"}, {en: "Voice", zh: "聲音"}, {en: "Lie", zh: "說謊/躺"},
+                {en: "Wake", zh: "醒來"}, {en: "Strange", zh: "奇怪的"}, {en: "Noise", zh: "噪音"}, {en: "Seem", zh: "似乎"},
+                {en: "Certain", zh: "確定的"}, {en: "Easily", zh: "容易地"}, {en: "Freezing", zh: "極冷的"}, {en: "Knock", zh: "敲"},
+                {en: "Front", zh: "前面"}, {en: "Sorry", zh: "抱歉的"}, {en: "Invite", zh: "邀請"}, {en: "Visitor", zh: "訪客"},
+                {en: "Shake", zh: "搖動"}, {en: "Brave", zh: "勇敢的"}, {en: "Page", zh: "頁"}
+            ],
+            "U14": [
+                {en: "In order to", zh: "為了"}, {en: "Bite", zh: "咬"}, {en: "Modern", zh: "現代的"}, {en: "Fear", zh: "恐懼"},
+                {en: "Contact", zh: "接觸/聯絡"}, {en: "Nature", zh: "自然"}, {en: "Waste", zh: "浪費/廢棄物"}, {en: "Fruit", zh: "水果"},
+                {en: "Feed", zh: "餵食"}, {en: "Later", zh: "稍後"}, {en: "Report", zh: "報告"}, {en: "Type", zh: "類型/打字"},
+                {en: "Bee", zh: "蜜蜂"}, {en: "Butterfly", zh: "蝴蝶"}, {en: "Clearly", zh: "清楚地"}, {en: "Farm", zh: "農場"},
+                {en: "Pollution", zh: "污染"}, {en: "Serious", zh: "嚴重的"}, {en: "Everywhere", zh: "到處"}, {en: "Kill", zh: "殺死"}
+            ],
+            "U15": [
+                {en: "Diary", zh: "日記"}, {en: "Mean", zh: "意指/刻薄的"}, {en: "Pass", zh: "通過/傳遞"}, {en: "Note", zh: "筆記/便條"},
+                {en: "Admire", zh: "欽佩/欣賞"}, {en: "Point", zh: "點/指出"}, {en: "Stranger", zh: "陌生人"}, {en: "Embarrass", zh: "使尷尬"},
+                {en: "Burst into", zh: "突然爆發"}, {en: "Tear", zh: "眼淚/撕裂"}, {en: "Honest", zh: "誠實的"}, {en: "Principal", zh: "校長/主要的"},
+                {en: "Office", zh: "辦公室"}, {en: "Happen", zh: "發生"}, {en: "Trouble", zh: "麻煩"}, {en: "Laugh", zh: "笑"},
+                {en: "Funny", zh: "好笑的"}, {en: "Listen", zh: "聽"}, {en: "Friendship", zh: "友誼"}
+            ],
+            "U16": [
+                {en: "Almost", zh: "幾乎"}, {en: "Sun", zh: "太陽"}, {en: "No longer", zh: "不再"}, {en: "Universe", zh: "宇宙"},
+                {en: "Shine", zh: "照耀"}, {en: "Shape", zh: "形狀"}, {en: "Motion", zh: "動作/移動"}, {en: "Chemistry", zh: "化學"},
+                {en: "Heat", zh: "熱度"}, {en: "Crowded", zh: "擁擠的"}, {en: "Area", zh: "區域"}, {en: "Piece", zh: "一片/張"},
+                {en: "Each other", zh: "彼此"}, {en: "Lucky", zh: "幸運的"}, {en: "Planet", zh: "行星"}, {en: "Distance", zh: "距離"},
+                {en: "Maybe", zh: "也許"}, {en: "Dream", zh: "夢想"}, {en: "Possible", zh: "可能的"}, {en: "Slim", zh: "苗條的"},
+                {en: "Belong", zh: "屬於"}
+            ],
+            "U17": [
+                {en: "Lock", zh: "鎖"}, {en: "Homework", zh: "作業"}, {en: "Princess", zh: "公主"}, {en: "Blanket", zh: "毯子"},
+                {en: "Couch", zh: "長沙發"}, {en: "Glass", zh: "玻璃/杯子"}, {en: "Chopstick", zh: "筷子"}, {en: "Step", zh: "腳步/步驟"},
+                {en: "Bench", zh: "長椅"}, {en: "Toe", zh: "腳趾"}, {en: "Giant", zh: "巨人/巨大的"}, {en: "Sheet", zh: "床單/一張"},
+                {en: "Ghost", zh: "鬼"}, {en: "Ill", zh: "生病的"}, {en: "Head", zh: "頭"}, {en: "Nurse", zh: "護士"},
+                {en: "Actress", zh: "女演員"}, {en: "Pop", zh: "流行/發出波聲"}, {en: "Imagine", zh: "想像"}
+            ],
+            "U18": [
+                {en: "Between", zh: "在...之間"}, {en: "Ocean", zh: "海洋"}, {en: "Tiny", zh: "微小的"}, {en: "Fill", zh: "充滿"},
+                {en: "Ancient", zh: "古代的"}, {en: "Exist", zh: "存在"}, {en: "Grow", zh: "成長"}, {en: "Tail", zh: "尾巴"},
+                {en: "Hunt", zh: "打獵"}, {en: "Poison", zh: "毒藥"}, {en: "Blood", zh: "血液"}, {en: "Hurt", zh: "傷害/痛"},
+                {en: "Until", zh: "直到"}, {en: "Seldom", zh: "很少"}, {en: "Attack", zh: "攻擊"}, {en: "Afraid", zh: "害怕的"},
+                {en: "Near", zh: "靠近"}, {en: "Though", zh: "雖然"}, {en: "Kind", zh: "種類/仁慈的"}, {en: "Unique", zh: "獨特的"},
+                {en: "Sand", zh: "沙子"}, {en: "Weather", zh: "天氣"}
+            ],
+            "U19": [
+                {en: "Bear", zh: "熊/忍受"}, {en: "River", zh: "河流"}, {en: "Closet", zh: "衣櫥"}, {en: "Free", zh: "免費的/自由的"},
+                {en: "Accept", zh: "接受"}, {en: "Receive", zh: "收到"}, {en: "Size", zh: "尺寸"}, {en: "Underwear", zh: "內衣"},
+                {en: "Sock", zh: "襪子"}, {en: "Hat", zh: "帽子"}, {en: "Scarf", zh: "圍巾"}, {en: "Glove", zh: "手套"},
+                {en: "Ring", zh: "戒指/鈴聲"}, {en: "Remember", zh: "記得"}, {en: "Raise", zh: "舉起/養育"}, {en: "Drink", zh: "喝/飲料"},
+                {en: "Cash", zh: "現金"}, {en: "Credit card", zh: "信用卡"}
+            ],
+            "U20": [
+                {en: "Castle", zh: "城堡"}, {en: "Hall", zh: "大廳"}, {en: "Spring", zh: "春天/泉水"}, {en: "Square", zh: "廣場/正方形"},
+                {en: "Central", zh: "中央的"}, {en: "Sport", zh: "運動"}, {en: "Station", zh: "車站"}, {en: "Tunnel", zh: "隧道"},
+                {en: "Regular", zh: "規律的"}, {en: "National", zh: "國家的"}, {en: "Fee", zh: "費用"}, {en: "Circle", zh: "圓圈"},
+                {en: "Express", zh: "表達/快遞"}, {en: "Service", zh: "服務"}, {en: "Youth", zh: "青春/青年"}, {en: "Cheap", zh: "便宜的"},
+                {en: "Extra", zh: "額外的"}, {en: "Seat", zh: "座位"}, {en: "Traffic", zh: "交通"}
+            ],
+            "U21": [
+                {en: "Send", zh: "寄送"}, {en: "Quick", zh: "快速的"}, {en: "Vacation", zh: "假期"}, {en: "Fantastic", zh: "極好的"},
+                {en: "Musician", zh: "音樂家"}, {en: "Instrument", zh: "儀器/樂器"}, {en: "Sidewalk", zh: "人行道"}, {en: "Outside", zh: "外面"},
+                {en: "Favorite", zh: "最喜愛的"}, {en: "Interesting", zh: "有趣的"}, {en: "Especially", zh: "特別是"}, {en: "Design", zh: "設計"},
+                {en: "Restaurant", zh: "餐廳"}, {en: "Tonight", zh: "今晚"}, {en: "Surprise", zh: "驚喜"}, {en: "Secret", zh: "秘密"},
+                {en: "Photo", zh: "照片"}, {en: "Inside", zh: "裡面"}, {en: "Ruin", zh: "毀壞/遺跡"}, {en: "Break", zh: "打破/休息"},
+                {en: "Time off", zh: "休假"}
+            ],
+            "U22": [
+                {en: "Paper", zh: "紙"}, {en: "Biology", zh: "生物學"}, {en: "Course", zh: "課程/路線"}, {en: "Actually", zh: "實際上"},
+                {en: "Lonely", zh: "寂寞的"}, {en: "Classmate", zh: "同班同學"}, {en: "Abroad", zh: "國外"}, {en: "Busy", zh: "忙碌的"},
+                {en: "Pick", zh: "挑選/撿"}, {en: "Foreign", zh: "外國的"}, {en: "College", zh: "大學"}, {en: "Education", zh: "教育"},
+                {en: "Lesson", zh: "課程/教訓"}, {en: "Gain", zh: "獲得/增加"}, {en: "Matter", zh: "事情/重要"}, {en: "Tired", zh: "疲累的"},
+                {en: "Lazy", zh: "懶惰的"}, {en: "Effort", zh: "努力"}
+            ],
+            "U23": [
+                {en: "Become", zh: "變成"}, {en: "Parrot", zh: "鸚鵡"}, {en: "Alone", zh: "獨自的"}, {en: "Cruel", zh: "殘忍的"},
+                {en: "Hunter", zh: "獵人"}, {en: "Catch", zh: "捉住/接"}, {en: "Drop", zh: "掉落"}, {en: "Finally", zh: "終於"},
+                {en: "Church", zh: "教堂"}, {en: "Take care of", zh: "照顧"}, {en: "Both", zh: "兩者都"}, {en: "Through", zh: "穿過"},
+                {en: "Yell", zh: "大叫"}, {en: "Scare", zh: "驚嚇"}, {en: "Hurry", zh: "匆忙"}, {en: "Greet", zh: "問候"},
+                {en: "Likely", zh: "可能的"}, {en: "Terrible", zh: "可怕的"}, {en: "Language", zh: "語言"}, {en: "Treat", zh: "對待/請客"}
+            ],
+            "U24": [
+                {en: "Trip", zh: "旅行"}, {en: "Sign up", zh: "報名"}, {en: "Center", zh: "中心"}, {en: "Influence", zh: "影響"},
+                {en: "History", zh: "歷史"}, {en: "Experience", zh: "經驗"}, {en: "Path", zh: "小徑"}, {en: "A couple of", zh: "幾個"},
+                {en: "Arrange", zh: "安排"}, {en: "Chance", zh: "機會"}, {en: "Great", zh: "很棒的"}, {en: "Short", zh: "短的/矮的"},
+                {en: "Ride", zh: "騎/搭乘"}, {en: "Offer", zh: "提供"}, {en: "Order", zh: "點餐/命令"}, {en: "Machine", zh: "機器"},
+                {en: "Shop", zh: "商店"}, {en: "Fashionable", zh: "時尚的"}, {en: "Clothes", zh: "衣服"}, {en: "Building", zh: "建築物"},
+                {en: "Tower", zh: "塔"}
+            ],
+            // --- Advanced Level ---
+            "U25": [
+                {en: "Well-dressed", zh: "穿著得體"}, {en: "Polite", zh: "有禮貌的"}, {en: "However", zh: "然而"}, {en: "Dark", zh: "黑暗的"},
+                {en: "Mirror", zh: "鏡子"}, {en: "Century", zh: "世紀"}, {en: "Death", zh: "死亡"}, {en: "Explain", zh: "解釋"},
+                {en: "Dig up", zh: "挖掘"}, {en: "Body", zh: "身體"}, {en: "Find", zh: "發現"}, {en: "Alive", zh: "活著的"},
+                {en: "Corner", zh: "角落"}, {en: "Hear", zh: "聽見"}, {en: "News", zh: "新聞"}, {en: "Monster", zh: "怪物"},
+                {en: "Buffet", zh: "自助餐"}, {en: "Dawn", zh: "黎明"}, {en: "Attention", zh: "注意"}, {en: "Clear", zh: "清楚的"},
+                {en: "Cause", zh: "造成/原因"}, {en: "Fight", zh: "打架"}
+            ],
+            "U26": [
+                {en: "Protect", zh: "保護"}, {en: "Several", zh: "幾個"}, {en: "Amount", zh: "數量"}, {en: "Electric", zh: "電的"},
+                {en: "Turn on", zh: "打開(電源)"}, {en: "Produce", zh: "生產"}, {en: "Block", zh: "阻擋/街區"}, {en: "Worry about", zh: "擔心"},
+                {en: "Damage", zh: "損害"}, {en: "Dangerous", zh: "危險的"}, {en: "Screen", zh: "螢幕"}, {en: "Pain", zh: "疼痛"},
+                {en: "Effect", zh: "效果/影響"}, {en: "Fool", zh: "愚弄/傻瓜"}, {en: "Fall asleep", zh: "睡著"}, {en: "Blind", zh: "瞎的"},
+                {en: "Improve", zh: "改善"}, {en: "During", zh: "在...期間"}, {en: "Advise", zh: "建議"}, {en: "Special", zh: "特別的"},
+                {en: "Make a difference", zh: "產生影響"}, {en: "Method", zh: "方法"}, {en: "Minute", zh: "分鐘"}, {en: "Second", zh: "秒/第二"}
+            ],
+            "U27": [
+                {en: "Value", zh: "價值"}, {en: "Save", zh: "儲存/拯救"}, {en: "Gold", zh: "黃金"}, {en: "Spot", zh: "斑點/地點"},
+                {en: "Hide", zh: "躲藏"}, {en: "Open", zh: "打開"}, {en: "Count", zh: "數"}, {en: "Coin", zh: "硬幣"},
+                {en: "Last", zh: "持續/最後的"}, {en: "Shut", zh: "關上"}, {en: "Next", zh: "下一個"}, {en: "Again", zh: "再一次"},
+                {en: "Wild", zh: "野生的"}, {en: "Anger", zh: "憤怒"}, {en: "Curious", zh: "好奇的"}, {en: "Wrong", zh: "錯誤的"},
+                {en: "Rob", zh: "搶劫"}, {en: "Shout", zh: "大叫"}, {en: "Answer", zh: "回答"}, {en: "Throw", zh: "投擲"},
+                {en: "Stone", zh: "石頭"}, {en: "Deep", zh: "深的"}, {en: "Hole", zh: "洞"}
+            ],
+            "U28": [
+                {en: "Deal", zh: "處理/交易"}, {en: "Common", zh: "常見的"}, {en: "Difficult", zh: "困難的"}, {en: "Easy", zh: "容易的"},
+                {en: "Tip", zh: "秘訣/小費"}, {en: "Kingdom", zh: "王國"}, {en: "Angry", zh: "生氣的"}, {en: "Toward", zh: "朝向"},
+                {en: "Negative", zh: "負面的"}, {en: "Argue", zh: "爭吵"}, {en: "Behave", zh: "表現"}, {en: "Fly", zh: "飛"},
+                {en: "Calm", zh: "冷靜的"}, {en: "Avoid", zh: "避免"}, {en: "Eagle", zh: "老鷹"}, {en: "Above", zh: "在...之上"},
+                {en: "Far", zh: "遠的"}, {en: "Understand", zh: "了解"}, {en: "Humor", zh: "幽默"}, {en: "Joke", zh: "笑話"}
+            ],
+            "U29": [
+                {en: "Summer", zh: "夏天"}, {en: "Yet", zh: "還(沒)"}, {en: "Camp", zh: "露營"}, {en: "Beach", zh: "海灘"},
+                {en: "Cool", zh: "涼爽的/酷"}, {en: "Holiday", zh: "假日"}, {en: "Adult", zh: "成人"}, {en: "Nice looking", zh: "好看的"},
+                {en: "Swimsuit", zh: "泳衣"}, {en: "Earn", zh: "賺取"}, {en: "Freedom", zh: "自由"}, {en: "Semester", zh: "學期"},
+                {en: "Hardly", zh: "幾乎不"}, {en: "Exam", zh: "考試"}, {en: "Physics", zh: "物理"}, {en: "Mix", zh: "混合"},
+                {en: "Evening", zh: "傍晚"}, {en: "Table tennis", zh: "桌球"}, {en: "Rock", zh: "岩石/搖滾"}, {en: "Consider", zh: "考慮"},
+                {en: "Join", zh: "加入"}
+            ],
+            "U30": [
+                {en: "Painter", zh: "畫家"}, {en: "Owner", zh: "擁有者"}, {en: "Sale", zh: "銷售"}, {en: "Case", zh: "案件/盒子"},
+                {en: "Know", zh: "知道"}, {en: "Nor", zh: "也不"}, {en: "Appreciate", zh: "欣賞/感激"}, {en: "Precious", zh: "珍貴的"},
+                {en: "Latter", zh: "後者"}, {en: "Inspire", zh: "啟發"}, {en: "Artist", zh: "藝術家"}, {en: "Besides", zh: "此外"},
+                {en: "Bring up", zh: "撫養/提出"}, {en: "Conversation", zh: "對話"}, {en: "Usually", zh: "通常"}, {en: "State", zh: "狀態/州"},
+                {en: "Mind", zh: "介意/心智"}, {en: "Spend", zh: "花費"}, {en: "Hospital", zh: "醫院"}, {en: "Another", zh: "另一個"},
+                {en: "Crazy", zh: "瘋狂的"}, {en: "Wonderful", zh: "美好的"}
+            ],
+            "U31": [
+                {en: "Bored", zh: "感到無聊的"}, {en: "Hobby", zh: "嗜好"}, {en: "Same", zh: "相同的"}, {en: "Lovely", zh: "可愛的"},
+                {en: "Provide", zh: "提供"}, {en: "Choose", zh: "選擇"}, {en: "Opinion", zh: "意見"}, {en: "Science", zh: "科學"},
+                {en: "Drama", zh: "戲劇"}, {en: "Debate", zh: "辯論"}, {en: "Team", zh: "隊伍"}, {en: "Select", zh: "挑選"},
+                {en: "Member", zh: "成員"}, {en: "Meeting", zh: "會議"}, {en: "Weekday", zh: "工作日"}, {en: "Speech", zh: "演講"},
+                {en: "International", zh: "國際的"}, {en: "Event", zh: "事件/活動"}, {en: "Climate", zh: "氣候"}, {en: "Elect", zh: "選舉"},
+                {en: "President", zh: "總統/校長"}, {en: "Invent", zh: "發明"}, {en: "Build", zh: "建造"}
+            ],
+            "U32": [
+                {en: "Spider", zh: "蜘蛛"}, {en: "Land", zh: "土地"}, {en: "Desire", zh: "渴望"}, {en: "Control", zh: "控制"},
+                {en: "Lead", zh: "領導"}, {en: "Army", zh: "軍隊"}, {en: "Drive out", zh: "驅趕"}, {en: "Lose", zh: "輸/遺失"},
+                {en: "Soldier", zh: "士兵"}, {en: "Run away", zh: "逃跑"}, {en: "Seek out", zh: "找出"}, {en: "Give up", zh: "放棄"},
+                {en: "Across", zh: "橫越"}, {en: "Roof", zh: "屋頂"}, {en: "Fail", zh: "失敗"}, {en: "Poor", zh: "貧窮的/可憐的"},
+                {en: "Alike", zh: "相似的"}, {en: "Quit", zh: "退出/戒除"}, {en: "Succeed", zh: "成功"}, {en: "Sense", zh: "感覺"},
+                {en: "Gather", zh: "聚集"}, {en: "Spread", zh: "散播"}, {en: "Beat", zh: "打敗/敲打"}, {en: "Enemy", zh: "敵人"},
+                {en: "Push", zh: "推"}, {en: "Country", zh: "國家"}
+            ],
+            "U33": [
+                {en: "Top", zh: "頂端"}, {en: "Choice", zh: "選擇"}, {en: "Worker", zh: "工人"}, {en: "Host", zh: "主人/主持"},
+                {en: "Partner", zh: "夥伴"}, {en: "Customer", zh: "顧客"}, {en: "Make up", zh: "組成/化妝"}, {en: "Income", zh: "收入"},
+                {en: "Employ", zh: "雇用"}, {en: "Handle", zh: "處理/把手"}, {en: "Waitress", zh: "女服務生"}, {en: "Quiet", zh: "安靜的"},
+                {en: "Period", zh: "時期/句點"}, {en: "Useful", zh: "有用的"}, {en: "Hire", zh: "雇用"}, {en: "Available", zh: "可用的"},
+                {en: "Therefore", zh: "因此"}, {en: "Active", zh: "活躍的"}, {en: "Solve", zh: "解決"}, {en: "Interview", zh: "面試"},
+                {en: "Decision", zh: "決定"}, {en: "Discuss", zh: "討論"}
+            ],
+            "U34": [
+                {en: "Read", zh: "閱讀"}, {en: "Sample", zh: "樣品"}, {en: "Cancer", zh: "癌症"}, {en: "Program", zh: "程式/節目"},
+                {en: "Continue", zh: "繼續"}, {en: "Cure", zh: "治癒"}, {en: "Doubt", zh: "懷疑"}, {en: "Rise", zh: "上升"},
+                {en: "Smart", zh: "聰明的"}, {en: "Suggest", zh: "建議"}, {en: "Robot", zh: "機器人"}, {en: "Direct", zh: "直接的"},
+                {en: "Message", zh: "訊息"}, {en: "Real", zh: "真實的"}, {en: "Group", zh: "群組"}, {en: "Form", zh: "形式/表格"},
+                {en: "Society", zh: "社會"}, {en: "Project", zh: "專案"}, {en: "Difficulty", zh: "困難"}, {en: "Decide", zh: "決定"},
+                {en: "Carefully", zh: "小心地"}
+            ],
+            "U35": [
+                {en: "Turn around", zh: "轉身/好轉"}, {en: "Coach", zh: "教練"}, {en: "Chubby", zh: "圓胖的"}, {en: "Overweight", zh: "過重的"},
+                {en: "Develop", zh: "發展"}, {en: "Teenager", zh: "青少年"}, {en: "Exercise", zh: "運動"}, {en: "Burger", zh: "漢堡"},
+                {en: "Direction", zh: "方向"}, {en: "Hate", zh: "討厭"}, {en: "Dead", zh: "死的"}, {en: "Feeling", zh: "感覺"},
+                {en: "Frightened", zh: "受驚的"}, {en: "Begin", zh: "開始"}, {en: "Realize", zh: "了解/實現"}, {en: "Burn off", zh: "燃燒(消耗)"},
+                {en: "Fat", zh: "胖的/脂肪"}, {en: "Belt", zh: "皮帶"}, {en: "Work out", zh: "健身/解決"}, {en: "Positive", zh: "正面的"},
+                {en: "Goal", zh: "目標"}, {en: "Impossible", zh: "不可能的"}
+            ],
+            "U36": [
+                {en: "Poem", zh: "詩"}, {en: "Pattern", zh: "模式/圖樣"}, {en: "Stop", zh: "停止"}, {en: "Scientist", zh: "科學家"},
+                {en: "Train", zh: "火車/訓練"}, {en: "Enter", zh: "進入/輸入"}, {en: "Allow", zh: "允許"}, {en: "Rule", zh: "規則"},
+                {en: "Surprised", zh: "感到驚訝的"}, {en: "Discover", zh: "發現"}, {en: "Create", zh: "創造"}, {en: "Ordinary", zh: "平凡的"},
+                {en: "Follow", zh: "跟隨"}, {en: "Mistake", zh: "錯誤"}, {en: "Detect", zh: "偵測"}, {en: "Comment", zh: "評論"},
+                {en: "Lack", zh: "缺乏"}, {en: "Emotion", zh: "情緒"}, {en: "Bother", zh: "打擾"}, {en: "Bright", zh: "明亮的"}
+            ]
+        };
+
+        // --- Game Config & State ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let animationId;
+        let lastTime = 0;
+        
+        const GAME_WIDTH = 1000;
+        const GAME_HEIGHT = 400;
+        const GROUND_Y = 320;
+        let MAX_LEVELS = 3; 
+        
+        // Unit Config
+        const UNIT_TYPES = [
+            { id: 0, name: 'basic', cost: 50, cd: 2000, color: '#fff' }, 
+            { id: 1, name: 'tank', cost: 150, cd: 4000, color: '#ddd' }, 
+            { id: 2, name: 'gross', cost: 300, cd: 6000, color: '#90CAF9' },
+            { id: 3, name: 'titan', cost: 600, cd: 12000, color: '#B39DDB' } 
+        ];
+
+        let gameState = {
+            isRunning: false,
+            mode: 'NORMAL', // NORMAL or BOSS
+            level: 1,
+            playerHp: 1000,
+            maxPlayerHp: 1000,
+            enemyHp: 3000,
+            maxEnemyHp: 3000,
+            money: 0,
+            maxMoney: 2000,
+            score: 0,
+            cats: [],
+            enemies: [],
+            particles: [],
+            activeList: [],
+            currentVocab: null,
+            currentVocabIndex: -1, 
+            deck: [], 
+            difficulty: 1,
+            unitCooldowns: [0, 0, 0, 0],
+            nextSpeakTime: 0,
+            wordStartTime: 0,
+            bossInvincible: false
+        };
+
+        // --- Classes (Entity, Particle) ---
+        class Entity {
+            constructor(x, y, isEnemy, type) {
+                this.x = x;
+                this.y = y;
+                this.isEnemy = isEnemy;
+                this.type = type;
+                this.width = 50;
+                this.height = 50;
+                this.state = 'walk';
+                this.attackTimer = 0;
+                this.knockbackVelocity = 0;
+                this.flashTime = 0;
+                this.frame = 0;
+                
+                this.hp = 100;
+                this.maxHp = 100;
+                this.dmg = 10;
+                this.speed = 1;
+                this.range = 10;
+                this.attackSpeed = 60;
+                
+                this.applyTypeStats();
+            }
+
+            applyTypeStats() {
+                if (!this.isEnemy) {
+                    if (this.type === 'basic') {
+                        this.hp = 150; this.maxHp = 150;
+                        this.dmg = 20; this.speed = 2;
+                        this.width = 40; this.height = 40;
+                    } else if (this.type === 'tank') {
+                        this.hp = 800; this.maxHp = 800;
+                        this.dmg = 5; this.speed = 0.5;
+                        this.width = 50; this.height = 80;
+                    } else if (this.type === 'gross') {
+                        this.hp = 250; this.maxHp = 250;
+                        this.dmg = 80; this.speed = 0.8;
+                        this.range = 150;
+                        this.height = 100; this.width = 30;
+                        this.attackSpeed = 90;
+                    } else if (this.type === 'titan') {
+                        this.hp = 1200; this.maxHp = 1200;
+                        this.dmg = 200; this.speed = 0.7;
+                        this.height = 110; this.width = 80;
+                        this.range = 40;
+                        this.attackSpeed = 100;
+                    }
+                } else {
+                    if (this.type === 'doge') {
+                        this.hp = 120; this.maxHp = 120;
+                        this.dmg = 15; this.speed = 1.2;
+                        this.color = '#DDAA77';
+                        this.width = 40; this.height = 40;
+                    } else if (this.type === 'pigge') {
+                        this.hp = 800; this.maxHp = 800;
+                        this.dmg = 40; this.speed = 0.5;
+                        this.width = 70; this.height = 60;
+                        this.color = '#F48FB1';
+                        this.range = 20;
+                    } else if (this.type === 'hippo') {
+                        this.hp = 2000; this.maxHp = 2000;
+                        this.dmg = 100; this.speed = 0.3;
+                        this.width = 100; this.height = 70;
+                        this.color = '#7986CB';
+                    }
+                }
+            }
+
+            update(dt, targets) {
+                if (this.flashTime > 0) this.flashTime--;
+                this.frame++;
+
+                if (Math.abs(this.knockbackVelocity) > 0.1) {
+                    this.x += this.knockbackVelocity;
+                    this.knockbackVelocity *= 0.8;
+                    return; 
+                }
+
+                let target = null;
+                let minDist = Infinity;
+
+                targets.forEach(t => {
+                    let dist = this.isEnemy ? (this.x - (t.x + t.width)) : (t.x - (this.x + this.width));
+                    if (dist < minDist && dist >= -100) {
+                        minDist = dist;
+                        target = t;
+                    }
+                });
+
+                if (!target) {
+                    let baseDist = this.isEnemy ? this.x - 50 : (GAME_WIDTH - 50) - (this.x + this.width);
+                    if (baseDist < this.range) target = "BASE";
+                }
+
+                if (target && minDist <= this.range || target === "BASE") {
+                    this.state = 'attack';
+                    if (this.attackTimer <= 0) {
+                        this.attack(target);
+                        this.attackTimer = this.attackSpeed;
+                    } else {
+                        this.attackTimer--;
+                    }
+                } else {
+                    this.state = 'walk';
+                    this.attackTimer = Math.max(0, this.attackTimer - 1);
+                    if (this.isEnemy) this.x -= this.speed;
+                    else this.x += this.speed;
+                }
+            }
+
+            attack(target) {
+                const particleX = this.isEnemy ? this.x : this.x + this.width;
+                let actualDmg = this.dmg;
+                
+                if (target === "BASE") {
+                    if (this.isEnemy) {
+                          spawnParticle(particleX, this.y + this.height/2, 'pow');
+                          gameState.playerHp -= actualDmg;
+                          spawnParticle(30, GROUND_Y - 50, 'dmg', actualDmg);
+                    } else {
+                        if (gameState.bossInvincible) {
+                             spawnParticle(GAME_WIDTH - 70, GROUND_Y - 80, 'text', 0, "SHIELD!");
+                        } else {
+                             spawnParticle(particleX, this.y + this.height/2, 'pow');
+                             gameState.enemyHp -= actualDmg;
+                             spawnParticle(GAME_WIDTH - 30, GROUND_Y - 50, 'dmg', actualDmg);
+                        }
+                    }
+                } else {
+                    spawnParticle(particleX, this.y + this.height/2, 'pow');
+                    target.takeDamage(actualDmg);
+                    
+                    // 新增：顯示扣血數字 (位於目標頭頂上方)
+                    spawnParticle(target.x + target.width/2, GROUND_Y - target.height - 20, 'dmg', actualDmg);
+
+                    if(this.type === 'titan') {
+                         gameState.enemies.forEach(e => {
+                             if(Math.abs(e.x - target.x) < 80) {
+                                 e.takeDamage(actualDmg);
+                                 // 新增：巨人範圍攻擊的扣血顯示
+                                 spawnParticle(e.x + e.width/2, GROUND_Y - e.height - 20, 'dmg', actualDmg);
+                             }
+                         });
+                    }
+                }
+            }
+
+            takeDamage(amount) {
+                this.hp -= amount;
+                this.flashTime = 5;
+                if (this.hp <= 0) {
+                    // Die
+                } else {
+                    if (Math.random() < 0.2) { 
+                        this.knockbackVelocity = this.isEnemy ? 15 : -15;
+                    }
+                }
+            }
+
+            draw(ctx, scaleX, scaleY) {
+                const drawX = this.x * scaleX;
+                const drawY = (GROUND_Y - this.height) * scaleY;
+                const drawW = this.width * scaleX;
+                const drawH = this.height * scaleY;
+                const cx = drawX + drawW/2;
+                const cy = drawY + drawH/2;
+
+                ctx.save();
+                
+                if (this.flashTime > 0) {
+                    ctx.globalAlpha = 0.7; ctx.fillStyle = '#fff';
+                } else {
+                    ctx.fillStyle = this.color || '#fff';
+                }
+
+                if (!this.isEnemy) {
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    
+                    if (this.type === 'basic') {
+                        ctx.beginPath();
+                        ctx.arc(cx, cy + 5*scaleY, drawW/2, 0, Math.PI*2);
+                        ctx.fill(); ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(cx - 15*scaleX, cy - 10*scaleY);
+                        ctx.lineTo(cx - 20*scaleX, cy - 25*scaleY);
+                        ctx.lineTo(cx - 5*scaleX, cy - 15*scaleY);
+                        ctx.fill(); ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(cx + 15*scaleX, cy - 10*scaleY);
+                        ctx.lineTo(cx + 20*scaleX, cy - 25*scaleY);
+                        ctx.lineTo(cx + 5*scaleX, cy - 15*scaleY);
+                        ctx.fill(); ctx.stroke();
+                        ctx.fillStyle = '#000';
+                        ctx.beginPath();
+                        ctx.arc(cx - 8*scaleX, cy, 2, 0, Math.PI*2);
+                        ctx.arc(cx + 8*scaleX, cy, 2, 0, Math.PI*2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.moveTo(cx, cy + 5*scaleY);
+                        ctx.lineTo(cx - 3*scaleX, cy + 8*scaleY);
+                        ctx.moveTo(cx, cy + 5*scaleY);
+                        ctx.lineTo(cx + 3*scaleX, cy + 8*scaleY);
+                        ctx.stroke();
+                        ctx.fillStyle = '#fff';
+                        const legOffset = Math.sin(this.frame * 0.2) * 5 * scaleX;
+                        ctx.beginPath();
+                        ctx.ellipse(cx - 10*scaleX + legOffset, drawY + drawH, 4*scaleX, 6*scaleY, 0, 0, Math.PI*2);
+                        ctx.fill(); ctx.stroke();
+                        ctx.beginPath();
+                        ctx.ellipse(cx + 10*scaleX - legOffset, drawY + drawH, 4*scaleX, 6*scaleY, 0, 0, Math.PI*2);
+                        ctx.fill(); ctx.stroke();
+
+                    } else if (this.type === 'tank') {
+                        ctx.fillRect(drawX, drawY, drawW, drawH);
+                        ctx.strokeRect(drawX, drawY, drawW, drawH);
+                        ctx.fillStyle = '#000';
+                        ctx.beginPath();
+                        ctx.arc(cx - 10*scaleX, drawY + 15*scaleY, 2, 0, Math.PI*2);
+                        ctx.arc(cx + 10*scaleX, drawY + 15*scaleY, 2, 0, Math.PI*2);
+                        ctx.fill();
+                        ctx.fillStyle = '#fff';
+                        ctx.beginPath();
+                        ctx.moveTo(drawX, drawY);
+                        ctx.lineTo(drawX + 10*scaleX, drawY - 10*scaleY);
+                        ctx.lineTo(drawX + 20*scaleX, drawY);
+                        ctx.fill(); ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(drawX + drawW, drawY);
+                        ctx.lineTo(drawX + drawW - 10*scaleX, drawY - 10*scaleY);
+                        ctx.lineTo(drawX + drawW - 20*scaleX, drawY);
+                        ctx.fill(); ctx.stroke();
+                        const legOffset = Math.sin(this.frame * 0.1) * 3 * scaleX;
+                        ctx.fillRect(cx - 15*scaleX + legOffset, drawY + drawH - 5*scaleY, 10*scaleX, 8*scaleY);
+                        ctx.fillRect(cx + 5*scaleX - legOffset, drawY + drawH - 5*scaleY, 10*scaleX, 8*scaleY);
+
+                    } else if (this.type === 'gross') {
+                        ctx.fillRect(cx - 10*scaleX, drawY, 20*scaleX, 30*scaleY);
+                        ctx.strokeRect(cx - 10*scaleX, drawY, 20*scaleX, 30*scaleY);
+                        const legSwing = Math.sin(this.frame * 0.1) * 10 * scaleX;
+                        ctx.beginPath();
+                        ctx.moveTo(cx - 5*scaleX, drawY + 30*scaleY);
+                        ctx.lineTo(cx - 5*scaleX + legSwing, drawY + drawH);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(cx + 5*scaleX, drawY + 30*scaleY);
+                        ctx.lineTo(cx + 5*scaleX - legSwing, drawY + drawH);
+                        ctx.stroke();
+                        ctx.fillStyle = '#000';
+                        ctx.beginPath();
+                        ctx.arc(cx - 4*scaleX, drawY + 10*scaleY, 1.5, 0, Math.PI*2);
+                        ctx.arc(cx + 4*scaleX, drawY + 10*scaleY, 1.5, 0, Math.PI*2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(cx, drawY + 12*scaleY, 5*scaleX, 0, Math.PI);
+                        ctx.stroke();
+
+                    } else if (this.type === 'titan') {
+                        ctx.beginPath();
+                        ctx.moveTo(cx - 30*scaleX, drawY + 20*scaleY);
+                        ctx.lineTo(cx + 30*scaleX, drawY + 20*scaleY);
+                        ctx.lineTo(cx + 20*scaleX, drawY + 70*scaleY);
+                        ctx.lineTo(cx - 20*scaleX, drawY + 70*scaleY);
+                        ctx.closePath();
+                        ctx.fill(); ctx.stroke();
+                        ctx.beginPath();
+                        ctx.arc(cx, drawY + 10*scaleY, 10*scaleX, 0, Math.PI*2);
+                        ctx.fill(); ctx.stroke();
+                        const armSwing = Math.sin(this.frame * 0.1) * 20 * scaleX;
+                        ctx.beginPath();
+                        ctx.moveTo(cx + 25*scaleX, drawY + 25*scaleY);
+                        ctx.lineTo(cx + 40*scaleX, drawY + 60*scaleY + armSwing);
+                        ctx.lineWidth = 8;
+                        ctx.stroke();
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(cx - 15*scaleX, drawY + 70*scaleY);
+                        ctx.lineTo(cx - 20*scaleX, drawY + drawH);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(cx + 15*scaleX, drawY + 70*scaleY);
+                        ctx.lineTo(cx + 20*scaleX, drawY + drawH);
+                        ctx.stroke();
+                    }
+
+                } else {
+                      if (this.type === 'doge') {
+                        ctx.fillStyle = this.color;
+                        ctx.fillRect(drawX, drawY + 10*scaleY, drawW, drawH - 10*scaleY);
+                        ctx.beginPath();
+                        ctx.moveTo(drawX + 5*scaleX, drawY + 10*scaleY);
+                        ctx.lineTo(drawX + 10*scaleX, drawY);
+                        ctx.lineTo(drawX + 15*scaleX, drawY + 10*scaleY);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.moveTo(drawX + 25*scaleX, drawY + 10*scaleY);
+                        ctx.lineTo(drawX + 30*scaleX, drawY);
+                        ctx.lineTo(drawX + 35*scaleX, drawY + 10*scaleY);
+                        ctx.fill();
+                        ctx.fillStyle = '#000';
+                        ctx.fillRect(drawX + 5*scaleX, drawY + 20*scaleY, 5*scaleX, 5*scaleY);
+                        ctx.fillRect(drawX + 25*scaleX, drawY + 20*scaleY, 5*scaleX, 5*scaleY);
+                    } else {
+                        ctx.fillStyle = this.color;
+                        ctx.fillRect(drawX, drawY, drawW, drawH);
+                    }
+                }
+
+                const hpPct = this.hp / this.maxHp;
+                ctx.fillStyle = 'red';
+                ctx.fillRect(drawX, drawY - 8*scaleY, drawW, 4*scaleY);
+                ctx.fillStyle = '#0f0';
+                ctx.fillRect(drawX, drawY - 8*scaleY, drawW * hpPct, 4*scaleY);
+
+                ctx.restore();
+            }
+        }
+
+        class Particle {
+            constructor(x, y, type, val, text) {
+                this.x = x; this.y = y;
+                this.type = type;
+                this.life = 60;
+                this.val = val;
+                this.text = text;
+            }
+            update() {
+                this.life--;
+                this.y -= 1.0;
+            }
+            draw(ctx, scaleX, scaleY) {
+                const dx = this.x * scaleX;
+                const dy = this.y * scaleY;
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.life / 60);
+                
+                if (this.type === 'money') {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.font = `bold ${24 * scaleY}px Arial`;
+                    ctx.fillText(this.text, dx, dy);
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = 1;
+                    ctx.strokeText(this.text, dx, dy);
+                } else if (this.type === 'score') {
+                    ctx.fillStyle = '#00E676';
+                    ctx.font = `bold ${22 * scaleY}px Arial`;
+                    ctx.fillText(this.text, dx, dy);
+                } else if (this.type === 'dmg') {
+                    ctx.fillStyle = 'red';
+                    ctx.font = `bold ${20 * scaleY}px Arial`;
+                    ctx.fillText("-" + Math.floor(this.val), dx, dy);
+                } else if (this.type === 'pow') {
+                    ctx.fillStyle = 'orange';
+                    ctx.beginPath();
+                    ctx.arc(dx, dy, 15*scaleX, 0, Math.PI*2);
+                    ctx.fill();
+                } else if (this.type === 'text') {
+                    ctx.fillStyle = '#FFF';
+                    ctx.font = `bold ${26 * scaleY}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(this.text, dx, dy);
+                    ctx.strokeStyle = '#FF5722';
+                    ctx.lineWidth = 2;
+                    ctx.strokeText(this.text, dx, dy);
+                }
+                ctx.restore();
+            }
+        }
+
+        // --- Logic ---
+
+        function initGame(level) {
+            gameState.level = level;
+            const unitVal = document.getElementById('unit-select').value;
+            gameState.activeList = [];
+            
+            // Handle Boss Modes
+            if (unitVal.startsWith('BOSS')) {
+                gameState.mode = 'BOSS';
+                MAX_LEVELS = 1;
+                
+                if (unitVal === 'BOSS_BASIC') {
+                    // Combine U1-U12
+                    for(let i=1; i<=12; i++) {
+                        gameState.activeList = gameState.activeList.concat(UNIT_DATA[`U${i}`]);
+                    }
+                    document.getElementById('level-indicator').innerText = "基礎魔王城 (U1-12)";
+                    gameState.enemyHp = 10000; gameState.maxEnemyHp = 10000;
+                } else if (unitVal === 'BOSS_INTER') {
+                    // Combine U13-U24
+                    for(let i=13; i<=24; i++) {
+                        gameState.activeList = gameState.activeList.concat(UNIT_DATA[`U${i}`]);
+                    }
+                    document.getElementById('level-indicator').innerText = "中級魔王城 (U13-24)";
+                    gameState.enemyHp = 15000; gameState.maxEnemyHp = 15000;
+                } else if (unitVal === 'BOSS_ADV') {
+                    // Combine U25-U36
+                    for(let i=25; i<=36; i++) {
+                        gameState.activeList = gameState.activeList.concat(UNIT_DATA[`U${i}`]);
+                    }
+                    document.getElementById('level-indicator').innerText = "進階魔王城 (U25-36)";
+                    gameState.enemyHp = 20000; gameState.maxEnemyHp = 20000;
+                } else {
+                    // ALL (BOSS_ALL)
+                    for(let i=1; i<=36; i++) {
+                        gameState.activeList = gameState.activeList.concat(UNIT_DATA[`U${i}`]);
+                    }
+                    document.getElementById('level-indicator').innerText = "終極魔王城 (All)";
+                    gameState.enemyHp = 30000; gameState.maxEnemyHp = 30000;
+                }
+
+                gameState.playerHp = 3000; gameState.maxPlayerHp = 3000;
+                gameState.bossInvincible = true;
+                document.getElementById('shield-indicator').style.display = 'block';
+                document.getElementById('shield-indicator').innerText = "🛡️ 無敵護盾 (消除單字以解除)";
+
+            } else {
+                // Normal Mode (Single Unit)
+                gameState.mode = 'NORMAL';
+                MAX_LEVELS = 3;
+                gameState.bossInvincible = false;
+                document.getElementById('shield-indicator').style.display = 'none';
+                
+                if (UNIT_DATA[unitVal]) {
+                    gameState.activeList = UNIT_DATA[unitVal];
+                } else {
+                    gameState.activeList = UNIT_DATA['U1']; // fallback
+                }
+                
+                gameState.playerHp = 1000 + (level * 200); 
+                gameState.maxPlayerHp = gameState.playerHp;
+                if (level === 1) { gameState.enemyHp = 2000; gameState.maxEnemyHp = 2000; }
+                else if (level === 2) { gameState.enemyHp = 4000; gameState.maxEnemyHp = 4000; }
+                else { gameState.enemyHp = 8000; gameState.maxEnemyHp = 8000; }
+                
+                document.getElementById('level-indicator').innerText = `Level ${level}/${MAX_LEVELS} - ${unitVal}`;
+            }
+
+            gameState.money = 200; 
+            if (level === 1) {
+                gameState.score = 0; 
+            }
+            gameState.cats = [];
+            gameState.enemies = [];
+            gameState.particles = [];
+            gameState.difficulty = 1; 
+            gameState.unitCooldowns = [0,0,0,0];
+            gameState.nextSpeakTime = 0;
+            gameState.wordStartTime = 0;
+            
+            refillDeck();
+            updateHUD();
+            pickNewWord();
+            setTimeout(spawnEnemy, 3000);
+            
+            document.getElementById('answer-input').focus();
+        }
+
+        function refillDeck() {
+            gameState.deck = Array.from({length: gameState.activeList.length}, (_, i) => i);
+            spawnParticle(GAME_WIDTH/2, 50, 'text', 0, "關卡開始!");
+            updateWordsRemaining();
+        }
+
+        function speakWord(text) {
+            if (!gameState.isRunning) return;
+            if (!window.speechSynthesis) return;
+            const btn = document.getElementById('speaker-btn');
+            btn.classList.add('speaking');
+            setTimeout(() => btn.classList.remove('speaking'), 1000);
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 1.0; 
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function manualSpeak() {
+             if (gameState.currentVocab) {
+                 speakWord(gameState.currentVocab.en);
+                 gameState.nextSpeakTime = Date.now() + 4000;
+             }
+        }
+
+        function pickNewWord() {
+            if (gameState.deck.length === 0) {
+                if (gameState.mode === 'BOSS') {
+                    if (gameState.bossInvincible) {
+                        gameState.bossInvincible = false;
+                        spawnParticle(GAME_WIDTH/2, 100, 'text', 0, "護盾解除!");
+                        document.getElementById('shield-indicator').style.display = 'none';
+                        document.getElementById('shield-indicator').innerText = "敵方基地脆弱!";
+                        gameState.enemyHp = Math.min(gameState.enemyHp, 5000); 
+                    }
+                    // In boss mode, we reshuffle if deck is empty to allow infinite play until win
+                    if (!gameState.bossInvincible) {
+                         // Optional: keep giving words to farm money? 
+                         // For now, let's just reshuffle to keep the game going
+                         refillDeck();
+                    }
+                } else {
+                    refillDeck(); 
+                }
+            }
+
+            if (gameState.deck.length > 0) {
+                const randIndex = Math.floor(Math.random() * gameState.deck.length);
+                const vocabIndex = gameState.deck[randIndex];
+                gameState.deck.splice(randIndex, 1);
+                
+                gameState.currentVocab = gameState.activeList[vocabIndex];
+                gameState.currentVocabIndex = vocabIndex;
+                gameState.wordStartTime = Date.now(); 
+                gameState.nextSpeakTime = Date.now(); 
+                
+                const len = gameState.currentVocab.en.length;
+                let reward = 100;
+                if (len >= 5) reward = 200;
+                if (len >= 7) reward = 300;
+                gameState.currentReward = reward;
+
+                document.getElementById('current-meaning').innerHTML = `${gameState.currentVocab.zh} <span class="english-hint">${gameState.currentVocab.en}</span>`;
+                document.getElementById('reward-preview').textContent = `獎勵: $${reward}`;
+            } else {
+                gameState.currentVocab = { en: "ATTACK!", zh: "全力攻擊城堡!" };
+                document.getElementById('current-meaning').innerText = "全力攻擊城堡!";
+                document.getElementById('reward-preview').innerText = "";
+                document.getElementById('target-word-display').innerHTML = "";
+                document.getElementById('answer-input').placeholder = "單字已清空!";
+            }
+            
+            const input = document.getElementById('answer-input');
+            input.value = "";
+            input.focus();
+            if (gameState.deck.length > 0) updateWordDisplay("");
+            updateWordsRemaining();
+        }
+        
+        function updateWordsRemaining() {
+            document.getElementById('words-remaining').innerText = `剩餘單字: ${gameState.deck.length + (gameState.currentVocab && gameState.deck.length > 0 ? 1 : 0)}`;
+        }
+        
+        function updateWordDisplay(currentInput) {
+            const container = document.getElementById('target-word-display');
+            if (!gameState.currentVocab || gameState.deck.length === 0 && !gameState.bossInvincible && gameState.mode === 'BOSS') {
+                container.innerHTML = "";
+                return;
+            }
+
+            const target = gameState.currentVocab.en;
+            container.innerHTML = "";
+            
+            for (let i = 0; i < target.length; i++) {
+                const span = document.createElement('span');
+                const char = target[i];
+                if (i < currentInput.length) {
+                    span.textContent = char;
+                    span.className = 'char-correct';
+                } else {
+                    span.textContent = char;
+                    span.className = 'char-pending';
+                }
+                span.style.marginRight = "5px";
+                container.appendChild(span);
+            }
+        }
+
+        const answerInput = document.getElementById('answer-input');
+        
+        answerInput.addEventListener('keydown', (e) => {
+            if (e.key.length > 1 || e.ctrlKey || e.metaKey) return; 
+            e.preventDefault(); 
+            if (gameState.deck.length === 0 && gameState.mode === 'BOSS') return; 
+
+            const targetWord = gameState.currentVocab.en;
+            const currentVal = answerInput.value;
+            const nextCharIndex = currentVal.length;
+            
+            if (nextCharIndex >= targetWord.length) return;
+            
+            const expectedChar = targetWord[nextCharIndex].toLowerCase();
+            const typedChar = e.key.toLowerCase();
+            
+            if (typedChar === expectedChar) {
+                answerInput.value += targetWord[nextCharIndex]; 
+                updateWordDisplay(answerInput.value);
+                if (answerInput.value.length === targetWord.length) {
+                    successWord();
+                }
+            } else {
+                answerInput.classList.add('shake');
+                setTimeout(() => answerInput.classList.remove('shake'), 200);
+            }
+        });
+        
+        answerInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Backspace') {
+                updateWordDisplay(answerInput.value);
+            }
+        });
+        
+        answerInput.addEventListener('paste', (e) => e.preventDefault());
+
+        function successWord() {
+            window.speechSynthesis.cancel();
+            const timeTaken = Date.now() - gameState.wordStartTime;
+            if (timeTaken > 10000) {
+                gameState.deck.push(gameState.currentVocabIndex);
+                spawnParticle(GAME_WIDTH/2, GAME_HEIGHT/2 - 80, 'text', 0, "⚠️ 需複習!");
+            }
+            addMoney(gameState.currentReward);
+            gameState.score += gameState.currentReward;
+            spawnParticle(GAME_WIDTH/2, GAME_HEIGHT/2, 'money', 0, `+$${gameState.currentReward}`);
+            pickNewWord();
+        }
+
+        function addMoney(amount) {
+            gameState.money = Math.min(gameState.maxMoney, gameState.money + amount);
+            updateHUD();
+        }
+
+        function tryBuyUnit(index) {
+            if (!gameState.isRunning) return;
+            const unit = UNIT_TYPES[index];
+            const now = Date.now();
+            if (gameState.money >= unit.cost && now >= gameState.unitCooldowns[index]) {
+                gameState.money -= unit.cost;
+                gameState.unitCooldowns[index] = now + unit.cd;
+                const cat = new Entity(60, 0, false, unit.name);
+                gameState.cats.push(cat);
+                updateHUD();
+                const btn = document.getElementById(`btn-${index+1}`);
+                btn.classList.add('cooldown');
+                btn.style.setProperty('--cd', unit.cd + 'ms');
+                setTimeout(() => btn.classList.remove('cooldown'), unit.cd);
+            }
+        }
+
+        function spawnEnemy() {
+            if (!gameState.isRunning) return;
+            const r = Math.random();
+            let type = 'doge';
+            const lvl = gameState.level;
+            
+            if (gameState.mode === 'BOSS') {
+                if (r > 0.5) type = 'pigge';
+                if (r > 0.85) type = 'hippo';
+            } else {
+                if (lvl === 1) {
+                    if (r > 0.85) type = 'pigge'; 
+                } else if (lvl === 2) {
+                    if (r > 0.6) type = 'pigge';
+                    if (r > 0.95) type = 'hippo';
+                } else {
+                    if (r > 0.4) type = 'pigge';
+                    if (r > 0.8) type = 'hippo';
+                }
+            }
+
+            const enemy = new Entity(GAME_WIDTH - 60, 0, true, type);
+            gameState.enemies.push(enemy);
+
+            let baseTime = 3000;
+            if (lvl === 2) baseTime = 2200;
+            if (lvl === 3 || gameState.mode === 'BOSS') baseTime = 1200;
+            const nextTime = Math.max(800, baseTime - (gameState.difficulty * 50));
+            if (gameState.difficulty < 15) gameState.difficulty += 0.1; 
+            setTimeout(spawnEnemy, nextTime);
+        }
+
+        function spawnParticle(x, y, type, val, text) {
+            gameState.particles.push(new Particle(x, y, type, val, text));
+        }
+
+        function updateHUD() {
+            document.getElementById('money-display').textContent = `$${gameState.money} / ${gameState.maxMoney}`;
+            document.getElementById('score-display').textContent = `Score: ${gameState.score}`;
+            document.getElementById('player-hp').style.width = (gameState.playerHp / gameState.maxPlayerHp * 100) + '%';
+            document.getElementById('enemy-hp').style.width = (gameState.enemyHp / gameState.maxEnemyHp * 100) + '%';
+
+            const now = Date.now();
+            UNIT_TYPES.forEach((u, i) => {
+                const btn = document.getElementById(`btn-${i+1}`);
+                const onCd = now < gameState.unitCooldowns[i];
+                if (gameState.money < u.cost || onCd) {
+                    btn.classList.add('disabled');
+                } else {
+                    btn.classList.remove('disabled');
+                }
+            });
+        }
+
+        function update(dt) {
+            if (gameState.playerHp <= 0) return endGame(false);
+            if (gameState.enemyHp <= 0) return endGame(true);
+
+            if (gameState.currentVocab && gameState.deck.length >= 0 && Date.now() > gameState.nextSpeakTime) {
+                if (gameState.mode === 'BOSS' && gameState.deck.length === 0) {} 
+                else {
+                   speakWord(gameState.currentVocab.en);
+                   gameState.nextSpeakTime = Date.now() + 4000;
+                }
+            }
+
+            gameState.cats.forEach((cat, i) => {
+                if (cat.hp <= 0) gameState.cats.splice(i, 1);
+                else cat.update(dt, gameState.enemies);
+            });
+            gameState.enemies.forEach((enemy, i) => {
+                if (enemy.hp <= 0) {
+                    gameState.enemies.splice(i, 1);
+                    // addMoney(50); // 已移除：打倒敵人不增加金錢
+                    gameState.score += 50;
+                    // spawnParticle(enemy.x, enemy.y, 'money', 0, "+$50"); // 已移除：不顯示金錢特效
+                    spawnParticle(enemy.x, enemy.y - 20, 'score', 0, "+50");
+                } else {
+                    enemy.update(dt, gameState.cats);
+                }
+            });
+
+            gameState.particles.forEach((p, i) => {
+                p.update();
+                if (p.life <= 0) gameState.particles.splice(i, 1);
+            });
+
+            if (Math.random() < 0.02) addMoney(1);
+            updateHUD();
+            if (document.activeElement !== answerInput) {
+                answerInput.focus();
+            }
+        }
+
+        function draw() {
+            const scaleX = canvas.width / GAME_WIDTH;
+            const scaleY = canvas.height / GAME_HEIGHT;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            if (gameState.mode === 'BOSS') {
+                grad.addColorStop(0, '#220000'); grad.addColorStop(1, '#550000'); 
+            } else if (gameState.level === 1) {
+                grad.addColorStop(0, '#87CEEB'); grad.addColorStop(1, '#dcdcdc');
+            } else if (gameState.level === 2) {
+                grad.addColorStop(0, '#FF9800'); grad.addColorStop(1, '#FFE0B2');
+            } else {
+                grad.addColorStop(0, '#311B92'); grad.addColorStop(1, '#7E57C2');
+            }
+            ctx.fillStyle = grad;
+            ctx.fillRect(0,0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#654321';
+            ctx.fillRect(0, GROUND_Y * scaleY, canvas.width, 5 * scaleY);
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, (GROUND_Y + 5) * scaleY, canvas.width, (GAME_HEIGHT - GROUND_Y) * scaleY);
+
+            ctx.fillStyle = '#444';
+            ctx.fillRect(0, (GROUND_Y - 120) * scaleY, 60 * scaleX, 120 * scaleY);
+            
+            ctx.fillStyle = gameState.bossInvincible ? '#000' : '#660000';
+            ctx.fillRect(canvas.width - 60 * scaleX, (GROUND_Y - 150) * scaleY, 60 * scaleX, 150 * scaleY);
+
+            if (gameState.bossInvincible) {
+                ctx.save();
+                ctx.strokeStyle = 'cyan';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(canvas.width - 30*scaleX, (GROUND_Y - 75)*scaleY, 80*scaleX, 0, Math.PI*2);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            gameState.cats.forEach(c => c.draw(ctx, scaleX, scaleY));
+            gameState.enemies.forEach(e => e.draw(ctx, scaleX, scaleY));
+            gameState.particles.forEach(p => p.draw(ctx, scaleX, scaleY));
+        }
+
+        function loop(timestamp) {
+            if (!gameState.isRunning) return;
+            const dt = timestamp - lastTime;
+            lastTime = timestamp;
+            update(dt);
+            draw();
+            animationId = requestAnimationFrame(loop);
+        }
+
+        // --- Controls ---
+        function startGame(level) {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-over-screen').style.display = 'none';
+            document.getElementById('level-complete-screen').style.display = 'none';
+            document.getElementById('leaderboard-screen').style.display = 'none';
+            
+            gameState.isRunning = true;
+            resizeCanvas();
+            initGame(level);
+            lastTime = performance.now();
+            animationId = requestAnimationFrame(loop);
+        }
+
+        function nextLevel() {
+            startGame(gameState.level + 1);
+        }
+
+        function endGame(victory) {
+            gameState.isRunning = false;
+            window.speechSynthesis.cancel(); 
+            cancelAnimationFrame(animationId);
+            
+            if (victory && (gameState.mode !== 'BOSS' && gameState.level < MAX_LEVELS)) {
+                // Next Stage
+                const screen = document.getElementById('level-complete-screen');
+                screen.style.display = 'flex';
+                // Bonus score for clearing level
+                gameState.score += 500;
+            } else {
+                // Game Over or Full Victory
+                const screen = document.getElementById('game-over-screen');
+                screen.style.display = 'flex';
+                
+                let title = victory ? "完全制霸!" : "敗北...";
+                let scoreText = `你的分數: ${gameState.score}`;
+                
+                document.getElementById('end-title').innerText = title;
+                document.getElementById('end-score-text').innerText = scoreText;
+                
+                // Clear input
+                document.getElementById('player-name-input').value = "";
+                
+                // Reset submit button state
+                const btn = document.getElementById('submit-score-btn');
+                btn.classList.remove('loading');
+                btn.disabled = false;
+                btn.innerText = "登記並回主選單";
+            }
+        }
+        
+        // --- Google Sheets Leaderboard Logic ---
+
+        async function fetchLeaderboard() {
+             // Fallback if URL is empty or fails
+             if (!GOOGLE_SCRIPT_URL) {
+                 const localData = localStorage.getItem('xining_hero_ranks');
+                 return localData ? JSON.parse(localData) : [];
+             }
+
+             try {
+                 const response = await fetch(GOOGLE_SCRIPT_URL);
+                 const data = await response.json();
+                 return data;
+             } catch (e) {
+                 console.warn("Google Sheet 連線失敗，切換至本地模式", e);
+                 const localData = localStorage.getItem('xining_hero_ranks');
+                 return localData ? JSON.parse(localData) : [];
+             }
+        }
+
+        async function submitScoreToGoogleSheet(name, score, date) {
+             // 優先嘗試寫入 LocalStorage 以防網路失敗
+             let ranks = JSON.parse(localStorage.getItem('xining_hero_ranks') || '[]');
+             ranks.push({name, score, date});
+             ranks.sort((a,b) => b.score - a.score);
+             if (ranks.length > 20) ranks.length = 20;
+             localStorage.setItem('xining_hero_ranks', JSON.stringify(ranks));
+
+             if (!GOOGLE_SCRIPT_URL) return;
+
+             try {
+                 await fetch(GOOGLE_SCRIPT_URL, {
+                     method: 'POST',
+                     body: JSON.stringify({name, score, date}),
+                     headers: { 'Content-Type': 'text/plain' }, // Avoids complex CORS preflight issues for GAS
+                     redirect: 'follow'
+                 });
+             } catch (e) {
+                 console.error("Google Sheet 上傳失敗", e);
+                 // Silent fail is ok since we saved to localStorage
+             }
+        }
+
+        async function submitScore() {
+            const nameInput = document.getElementById('player-name-input');
+            const name = nameInput.value.trim() || "無名英雄";
+            const score = gameState.score;
+            
+            const date = new Date().toLocaleString("zh-TW", { 
+                timeZone: "Asia/Taipei", 
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+
+            const btn = document.getElementById('submit-score-btn');
+            btn.innerText = "上傳中...";
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            await submitScoreToGoogleSheet(name, score, date);
+            
+            showLeaderboard();
+        }
+
+        function formatDateDisplay(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr; 
+            
+            return d.toLocaleString("zh-TW", { 
+                timeZone: "Asia/Taipei", 
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+        }
+
+        async function showLeaderboard() {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-over-screen').style.display = 'none';
+            document.getElementById('leaderboard-screen').style.display = 'flex';
+            
+            const tbody = document.getElementById('leaderboard-body');
+            tbody.innerHTML = "<tr><td colspan='4' class='loading-text'>讀取中...</td></tr>";
+            
+            try {
+                const ranks = await fetchLeaderboard();
+                tbody.innerHTML = "";
+                
+                if (!ranks || ranks.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='4'>暫無紀錄，快來挑戰！</td></tr>";
+                    return;
+                }
+
+                ranks.forEach((r, index) => {
+                    const tr = document.createElement('tr');
+                    let rankClass = "";
+                    let medal = "";
+                    
+                    if (index === 0) {
+                        rankClass = "rank-1";
+                        medal = "🥇 ";
+                    } else if (index === 1) {
+                        rankClass = "rank-2";
+                        medal = "🥈 ";
+                    } else if (index === 2) {
+                        rankClass = "rank-3";
+                        medal = "🥉 ";
+                    }
+                    
+                    tr.innerHTML = `
+                        <td class="${rankClass}">${medal}${index + 1}</td>
+                        <td class="${rankClass}">${r.name}</td>
+                        <td class="${rankClass}">${r.score}</td>
+                        <td>${formatDateDisplay(r.date)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                tbody.innerHTML = "<tr><td colspan='4' class='error-text'>讀取失敗。<br>請檢查網路。</td></tr>";
+            }
+        }
+
+        function showStartScreenFromLeaderboard() {
+            document.getElementById('leaderboard-screen').style.display = 'none';
+            document.getElementById('start-screen').style.display = 'flex';
+        }
+
+        function resetGame() { 
+            document.getElementById('game-over-screen').style.display = 'none';
+            document.getElementById('start-screen').style.display = 'flex';
+            gameState.activeList = [];
+        }
+        
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            if (container) {
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        
+        window.addEventListener('keydown', (e) => {
+            if (e.target.id === 'player-name-input') return;
+
+            if (['1', '2', '3', '4'].includes(e.key)) {
+                e.preventDefault(); 
+                const idx = parseInt(e.key) - 1;
+                tryBuyUnit(idx);
+            }
+        });
+        
+        // Initial resize
+        setTimeout(resizeCanvas, 100);
+
+    </script>
+</body>
+</html>
