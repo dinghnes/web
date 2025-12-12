@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>簽退提醒小幫手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .clock-shadow {
+            text-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        /* 簡單的脈衝動畫 */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        .active-pulse {
+            animation: pulse-ring 2s infinite;
+        }
+        /* 按鈕點擊效果 */
+        .btn-press:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body class="h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 md:p-8 relative overflow-hidden">
+        <!-- 頂部裝飾條 -->
+        <div class="absolute top-0 left-0 w-full h-2 bg-blue-600"></div>
+
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">西寧國小加班簽退提醒</h1>
+            <p class="text-gray-500 text-sm mt-1">臺中市立學校差勤系統</p>
+        </div>
+
+        <!-- 時間顯示 -->
+        <div class="bg-gray-900 rounded-xl p-6 text-center mb-6 text-white shadow-inner relative overflow-hidden group">
+            <div class="absolute inset-0 bg-blue-500 opacity-0 group-hover:opacity-5 transition-opacity duration-500"></div>
+            <p class="text-gray-400 text-sm mb-1">現在時間</p>
+            <div id="current-clock" class="text-5xl font-mono font-bold tracking-wider clock-shadow tabular-nums">00:00:00</div>
+            <div id="current-date" class="text-blue-300 text-sm mt-2 font-medium">Loading...</div>
+        </div>
+
+        <!-- 設定區域 -->
+        <div class="space-y-4">
+            <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200 transition-colors hover:border-blue-300">
+                <div class="flex items-center">
+                    <i class="fas fa-clock text-blue-600 mr-3 text-xl w-6 text-center"></i>
+                    <div>
+                        <label for="target-time" class="block text-sm font-bold text-gray-700">設定提醒時間</label>
+                        <p class="text-xs text-gray-500">格式：24小時制</p>
+                    </div>
+                </div>
+                <input type="time" id="target-time" value="08:10" class="bg-white border border-gray-300 rounded px-2 py-1 text-lg font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+            </div>
+
+            <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors">
+                <div class="flex items-center">
+                    <i class="fas fa-volume-up text-yellow-500 mr-3 text-xl w-6 text-center"></i>
+                    <span class="text-sm font-bold text-gray-700">啟用音效與彈窗</span>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="sound-toggle" class="sr-only peer" checked>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+            </div>
+            
+            <!-- 快速連結與測試 -->
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="testAlarm()" class="btn-press bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-lg transition duration-300 flex items-center justify-center gap-2 border border-gray-200">
+                    <i class="fas fa-vial text-gray-500"></i> 測試提醒
+                </button>
+                <a href="https://pemis.taichung.gov.tw/index.aspx" target="_blank" class="btn-press bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition duration-300 shadow-md flex items-center justify-center gap-2">
+                    <i class="fas fa-external-link-alt"></i>
+                    手動前往
+                </a>
+            </div>
+        </div>
+
+        <!-- 狀態顯示 -->
+        <div id="status-msg" class="mt-6 text-center text-sm text-gray-500 bg-blue-50 py-2 rounded border border-blue-100 flex items-center justify-center gap-2">
+            <i class="fas fa-spinner fa-spin text-blue-400"></i> <span>正在監控時間中...</span>
+        </div>
+
+        <div class="mt-6 text-xs text-gray-400 text-center space-y-1">
+            <p>※ 請保持此分頁開啟以接收提醒</p>
+            <p>※ 建議允許此網站的「通知」權限</p>
+        </div>
+    </div>
+
+    <!-- 提醒 Modal -->
+    <div id="alarm-modal" class="fixed inset-0 bg-gray-900 bg-opacity-70 hidden flex items-center justify-center z-50 backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full text-center active-pulse transform transition-all scale-100 mx-4">
+            <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5 animate-bounce">
+                <i class="fas fa-clock text-red-600 text-4xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">簽退時間到了！</h2>
+            <p class="text-gray-600 mb-6 text-lg">現在是 <span id="alarm-time-display" class="font-bold font-mono text-red-500"></span></p>
+            
+            <p id="popup-blocked-msg" class="hidden text-xs text-left text-red-600 mb-4 bg-red-50 p-3 rounded border border-red-100">
+                <i class="fas fa-exclamation-triangle mr-1"></i> <strong>注意：</strong>自動開啟網頁被瀏覽器攔截。<br>請點擊下方藍色按鈕前往系統。
+            </p>
+
+            <div class="space-y-3">
+                <a href="https://pemis.taichung.gov.tw/index.aspx" target="_blank" onclick="stopAlarm()" class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-lg transition shadow-lg transform hover:-translate-y-1">
+                    <i class="fas fa-sign-out-alt mr-2"></i> 立即前往簽退系統
+                </a>
+                <button onclick="stopAlarm()" class="block w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-lg transition border border-gray-300">
+                    稍後再說
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 變數初始化
+        const clockElement = document.getElementById('current-clock');
+        const dateElement = document.getElementById('current-date');
+        const targetTimeInput = document.getElementById('target-time');
+        const soundToggle = document.getElementById('sound-toggle');
+        const statusMsg = document.getElementById('status-msg');
+        const alarmModal = document.getElementById('alarm-modal');
+        const popupBlockedMsg = document.getElementById('popup-blocked-msg');
+        
+        let alarmTriggeredToday = false;
+        let audioCtx = null;
+        let titleInterval = null;
+        const originalTitle = document.title;
+        const targetUrl = "https://pemis.taichung.gov.tw/index.aspx";
+
+        // 請求瀏覽器通知權限
+        if ("Notification" in window) {
+            if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+                Notification.requestPermission();
+            }
+        }
+
+        // 標題閃爍功能
+        function startTitleFlash(text) {
+            if (titleInterval) clearInterval(titleInterval);
+            let isOriginal = false;
+            titleInterval = setInterval(() => {
+                document.title = isOriginal ? originalTitle : text;
+                isOriginal = !isOriginal;
+            }, 1000);
+        }
+
+        function stopTitleFlash() {
+            if (titleInterval) {
+                clearInterval(titleInterval);
+                titleInterval = null;
+            }
+            document.title = originalTitle;
+        }
+
+        // 播放提示音
+        function playBeep() {
+            if (!soundToggle.checked) return;
+
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                // 恢復 Context
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                oscillator.frequency.exponentialRampToValueAtTime(1046.5, audioCtx.currentTime + 0.1); // C6
+                
+                // 雙重嗶聲
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime + 0.4);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 1.0);
+            } catch (e) {
+                console.error("Audio play failed", e);
+            }
+        }
+
+        function testAlarm() {
+            // 測試時不檢查時間，直接觸發
+            showAlarm(true);
+        }
+
+        function showAlarm(isTest = false) {
+            playBeep();
+            
+            // 1. 顯示 HTML Modal (頁面內遮罩)
+            document.getElementById('alarm-time-display').innerText = new Date().toLocaleTimeString('zh-TW', {hour: '2-digit', minute:'2-digit'});
+            alarmModal.classList.remove('hidden');
+            popupBlockedMsg.classList.add('hidden'); // 先重置錯誤訊息
+
+            // 2. 標題閃爍
+            startTitleFlash("🔴 簽退時間到了！");
+
+            // 3. 瀏覽器系統通知
+            if (Notification.permission === "granted") {
+                const notify = new Notification("簽退提醒", {
+                    body: isTest ? "這是測試提醒！" : "時間到了！請前往台中市政府人事系統簽退。",
+                    icon: "https://pemis.taichung.gov.tw/favicon.ico",
+                    requireInteraction: true
+                });
+                notify.onclick = function() {
+                    window.open(targetUrl, '_blank');
+                    window.focus();
+                    stopAlarm();
+                };
+            }
+
+            // 4. 嘗試自動開啟網頁
+            // 注意：現代瀏覽器通常會阻擋非用戶觸發的 window.open
+            if (!isTest) {
+                try {
+                    const newWin = window.open(targetUrl, '_blank');
+                    if (!newWin || newWin.closed || typeof newWin.closed == 'undefined') {
+                        // 如果被攔截
+                        console.log("Popup blocked by browser");
+                        popupBlockedMsg.classList.remove('hidden');
+                    }
+                } catch (e) {
+                    popupBlockedMsg.classList.remove('hidden');
+                }
+            }
+            
+            // 5. 強迫提醒 (Native Alert)
+            // 使用 setTimeout 讓 UI 先渲染出來再彈出 alert，確保視覺與聲音都已啟動
+            setTimeout(() => {
+                alert(isTest ? "測試：簽退提醒！" : "時間到了！請記得簽退！");
+            }, 300);
+
+            // 嘗試自動聚焦視窗
+            window.focus();
+        }
+
+        function stopAlarm() {
+            alarmModal.classList.add('hidden');
+            stopTitleFlash();
+        }
+
+        function updateClock() {
+            const now = new Date();
+            
+            // 格式化時間 HH:MM:SS
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const currentTimeStr = `${hours}:${minutes}`; 
+            
+            clockElement.innerText = `${hours}:${minutes}:${seconds}`;
+
+            const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+            dateElement.innerText = now.toLocaleDateString('zh-TW', options);
+
+            const targetTime = targetTimeInput.value;
+            
+            // 觸發條件：時間吻合 + 秒數為00 + 今天還沒觸發過
+            if (currentTimeStr === targetTime && seconds === '00' && !alarmTriggeredToday) {
+                // 檢查工作日 (0是週日, 6是週六)
+                const day = now.getDay();
+                if (day !== 0 && day !== 6) { 
+                    showAlarm();
+                    alarmTriggeredToday = true;
+                    statusMsg.innerHTML = '<i class="fas fa-check-circle text-green-500"></i> <span class="text-green-600">今日提醒已發送</span>';
+                }
+            }
+
+            // 重置與狀態顯示
+            if (currentTimeStr !== targetTime) {
+                alarmTriggeredToday = false;
+                
+                const targetParts = targetTime.split(':');
+                if (targetParts.length === 2) {
+                    const targetDate = new Date();
+                    targetDate.setHours(parseInt(targetParts[0]), parseInt(targetParts[1]), 0);
+                    
+                    if (now < targetDate) {
+                        statusMsg.innerHTML = `<i class="fas fa-hourglass-half text-blue-500"></i> <span>等待 ${targetTime} 提醒中...</span>`;
+                    } else {
+                        statusMsg.innerHTML = `<i class="fas fa-moon text-gray-400"></i> <span>今日提醒時間已過</span>`;
+                    }
+                }
+            }
+        }
+
+        // 每秒更新
+        setInterval(updateClock, 1000);
+        updateClock(); 
+
+    </script>
+</body>
+</html>
