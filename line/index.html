@@ -1,0 +1,952 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Copy, RefreshCw, Settings, Type, Palette, Layout, CheckCircle, Plus, Trash2, AlertCircle, Scissors, Image as ImageIcon, Download, Upload, Eraser, Droplet, Layers, FileText, Hash, X, Archive } from 'lucide-react';
+
+// --- Prompt 生成器組件 ---
+const PromptGenerator = ({ onSwitchToSplitter }) => {
+  const [textList, setTextList] = useState("早安、晚安、謝謝、不客氣、對不起、沒問題、好的、收到、拜託、辛苦了、OK、等等");
+  const [artStyle, setArtStyle] = useState("大眼、賽璐璐上色");
+  const [layoutType, setLayoutType] = useState("4 × 3");
+  const [stickerCount, setStickerCount] = useState(12);
+  const [bgColor, setBgColor] = useState("#00FF00");
+  const [showCopyFeedback, setShowCopyFeedback] = useState(false);
+  const [limitWarning, setLimitWarning] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("日常實用");
+
+  // 預設風格清單
+  const stylePresets = [
+    { name: "預設 (賽璐璐)", value: "大眼、賽璐璐上色" },
+    { name: "3D 盲盒", value: "3D render, C4D, blind box toy style, cute, chibi" },
+    { name: "水彩手繪", value: "soft watercolor, hand drawn, cute illustration" },
+    { name: "像素藝術", value: "pixel art, 8-bit, retro game style" },
+    { name: "蠟筆塗鴉", value: "crayon drawing, scribble, children's book style" },
+    { name: "灌籃高手", value: "Slam Dunk style, Takehiko Inoue, 90s anime, detailed line work, intense expression, sports manga style" }
+  ];
+
+  // 擴充詞彙庫
+  const vocabularyDatabase = {
+    "日常實用": [
+      "早安", "晚安", "午安", "謝謝", "不客氣", "對不起", "沒問題", "好的", "收到", "拜託", 
+      "辛苦了", "OK", "等等", "加油", "恭喜", "生日快樂", "讚", "棒", "哈囉", "掰掰", 
+      "明天見", "晚點見", "吃飽沒", "肚子餓", "想睡覺", "起床了", "出門了", "到家了", "路上小心", "歡迎", 
+      "了解", "沒關係", "別客氣", "麻煩了", "請多指教", "搜哩", "拍謝", "感恩", "3Q", "Good", 
+      "Hi", "Hello", "Bye", "Night", "Morning", "Yes", "No", "為什麼", "真的嗎", "沒事",
+      "好喔", "好啊", "可以", "不行", "知道了", "笑死", "問號", "加一", "路過", "簽到"
+    ],
+    "有禮貌": [
+      "請問", "麻煩了", "不好意思", "謝謝您", "辛苦了", "勞駕", "請多指教", "拜託了", "打擾了", "請稍等",
+      "感謝", "有勞", "請慢用", "失陪了", "承蒙照顧", "不客氣", "沒關係", "請進", "請坐", "您好",
+      "早安您好", "晚安您好", "請笑納", "請過目", "請見諒", "抱歉", "對不起", "請原諒", "好的謝謝", "收到謝謝",
+      "了解謝謝", "沒問題謝謝", "好的麻煩了", "收到麻煩了", "請協助", "請確認", "請查收", "請參考", "請惠賜", "請指正",
+      "萬分感謝", "感激不盡", "勞煩您了", "久仰大名", "幸會幸會", "請多多包涵", "造成不便", "敬請見諒", "感謝您的", "祝您順心"
+    ],
+    "節慶祝賀": [
+      "新年快樂", "恭喜發財", "紅包拿來", "大吉大利", "聖誕快樂", "生日快樂", "中秋快樂", "端午安康", "母親節快樂", "父親節快樂",
+      "情人節快樂", "萬聖節快樂", "Merry Xmas", "Happy New Year", "Happy Birthday", "歲歲平安", "年年有餘", "心想事成", "萬事如意", "恭賀新禧",
+      "開工大吉", "元宵快樂", "勞動節快樂", "連假愉快", "放假啦", "跨年快樂", "除夕快樂", "初一快樂", "開運", "招財",
+      "福", "春", "滿", "乖乖", "歐趴", "畢業快樂", "週年快樂", "新婚快樂", "早生貴子", "百年好合",
+      "鴻圖大展", "步步高升", "生意興隆", "財源廣進", "平安喜樂", "身體健康", "闔家平安", "佳節愉快", "Happy Holiday", "Love You"
+    ],
+    "職場社畜": [
+      "收到", "好的", "馬上處理", "辛苦了", "開會中", "確認中", "麻煩你了", "加班中", "准時下班", "謝謝老闆", 
+      "收到謝謝", "沒問題", "請示", "報告", "審核", "簽核", "休假中", "出差中", "忙碌中", "請稍等", 
+      "了解", "已讀", "已寄出", "處理中", "追蹤中", "專案", "會議", "簡報", "報價", "客戶", 
+      "廠商", "合約", "發票", "統編", "下班了", "我在忙", "急件", "特急", "感謝協助", "萬事拜託", 
+      "懇請確認", "附件請查收", "請問進度", "尚未回覆", "提醒一下", "抱歉打擾", "合作愉快", "請過目", "修正後回傳", "請批准",
+      "本週進度", "下週待辦", "我在路上了", "塞車中", "請假一天", "病假", "事假", "WFH", "遠端中", "支援中"
+    ],
+    "情緒表達": [
+      "哈哈", "哭哭", "生氣", "驚訝", "傻眼", "無言", "愛你", "討厭", "好累", "崩潰", 
+      "嚇死", "問號", "開心", "難過", "興奮", "緊張", "害羞", "尷尬", "憤怒", "憂鬱", 
+      "無奈", "絕望", "期待", "失望", "感動", "羨慕", "嫉妒", "煩躁", "悠閒", "輕鬆", 
+      "滿足", "幸福", "孤單", "寂寞", "驚喜", "疑惑", "肯定", "否定", "懷疑", "相信", 
+      "驕傲", "自信", "卑微", "痛苦", "爽", "爛", "讚", "扯", "瞎", "暈",
+      "翻白眼", "嘆氣", "發抖", "冒汗", "臉紅", "心碎", "吐血", "昏倒", "眼神死", "黑人問號"
+    ],
+    "情侶甜蜜": [
+      "愛你", "想你", "抱抱", "親親", "早安", "晚安", "在幹嘛", "好喔", "對不起", "原諒我", 
+      "好棒", "辛苦了", "寶貝", "老公", "老婆", "親愛的", "哈尼", "想見你", "可以嗎", "好不好", 
+      "帶我去", "買給我", "餓了", "累累", "秀秀", "呼呼", "蹭蹭", "貼貼", "摸摸頭", "乖乖", 
+      "最愛你", "唯一", "永遠", "約會", "看電影", "吃大餐", "去哪裡", "陪我", "理我", "不理你", 
+      "哼", "壞壞", "討厭", "羞羞臉", "愛心", "筆芯", "啾咪", "想抱睡", "充電", "想親親",
+      "你在哪", "快回來", "等我", "愛你唷", "MUA", "LOVE", "Missing You", "Sweet", "Darling", "Honey"
+    ],
+    "厭世語錄": [
+      "不想上班", "好累", "心好累", "放過我", "隨便", "喔是喔", "聽不懂", "眼神死", "想回家", "人生好難", 
+      "別煩我", "......", "廢", "爛", "煩", "滾", "閉嘴", "吵死", "無聊", "沒救了", 
+      "可憐", "笑死", "呵呵", "慢走不送", "關我屁事", "干你屁事", "去死", "想離職", "想退休", "錢難賺", 
+      "薪水小偷", "躺平", "擺爛", "我就爛", "沒空", "不知道", "別問我", "心死", "累成狗", "想睡", 
+      "壓力山大", "懷疑人生", "生無可戀", "厭世", "負能量", "低氣壓", "別理我", "邊緣人", "沒朋友", "孤獨死"
+    ],
+    "網路迷因": [
+      "我就爛", "是在哈囉", "歸剛欸", "Duck不必", "笑死", "我就問", "可憐哪", "真的假的", "傑出的一手", "不要瞎掰好嗎", 
+      "我就靜靜看著你", "甚至還有", "是在哭", "像極了愛情", "小丑竟是我自己", "阿姨我不想努力了", "年輕人不講武德", "耗子尾汁", "我看不懂", "但我大受震撼", 
+      "關於我...", "注意看這個男人", "不可以色色", "修但幾勒", "咩噗", "甘安捏", "是在hello", "確認過眼神", "也是醉了", "厲害了", 
+      "這個我不要", "先不要", "要確定欸", "突破盲腸", "求心理陰影面積", "是在哈囉?", "本斥但大", "真香", "我覺得可以", "我覺得不行",
+      "這波不虧", "可以", "這很可以", "777", "87分不能再高", "你各位", "是在做夢嗎", "醒醒吧", "別做夢了", "下去"
+    ],
+    "台語風格": [
+      "甘安捏", "母湯", "是在哭", "水啦", "好康", "無聊", "巴豆夭", "肖欸", "真正好", "多謝", 
+      "拍謝", "金價母湯", "哩洗勒", "靠腰", "三小", "衝三小", "美送", "金美送", "安抓", "供蝦米", 
+      "麥安捏", "母湯喔", "賀啦", "厚啦", "賀", "某", "無", "好加在", "那欸安捏", "哩來", 
+      "來來來", "緊欸", "慢吞吞", "雖小", "好野人", "古錐", "緣投", "水噹噹", "歹勢", "多謝你", 
+      "勞力", "感謝", "免客氣", "免", "麥", "要", "愛", "青菜", "隨便", "歡喜"
+    ],
+    "購物/團購": [
+      "+1", "已匯款", "還有嗎", "想買", "多少錢", "含運嗎", "私訊", "排隊", "謝謝老闆", "已填單", 
+      "取貨", "好用嗎", "現貨嗎", "要等嗎", "運費", "面交", "超取", "宅配", "貨到付款", "刷卡", 
+      "轉帳", "後五碼", "已查收", "已寄出", "好賣+", "賣貨便", "蝦皮", "連結", "這裡買", "開團", 
+      "結單", "滿單", "流團", "這款", "顏色", "尺寸", "追加", "預購", "現貨", "正韓", 
+      "正品", "團購價", "優惠", "折扣", "免運", "手刀", "下單", "買買買", "荷包失血", "吃土"
+    ]
+  };
+
+  const generatePrompt = () => {
+    return `✅ ${stickerCount} 格角色貼圖集｜Prompt 建議
+請參考上傳圖片中的角色，生成 一張包含 ${stickerCount} 個不同動作的角色貼圖集，也不要使用任何emoji表情符號。
+
+[角色與風格設定]
+角色一致性：必須完全維持原圖主角的髮型、服裝、五官與整體外觀特徵。
+構圖風格：畫面僅包含「角色 + 文字」，不包含任何場景背景。
+畫風設定：【${artStyle}】。
+貼紙風格（去背友善）：角色與文字外圍皆需加入 粗白色外框（Sticker Style）。背景統一為 ${bgColor}（純綠色），不可有雜點。
+
+[畫面佈局與尺寸規格]
+整體為 ${layoutType} 佈局，共 ${stickerCount} 張貼圖。總尺寸：1480 × 960 px。
+每張小圖約 370 × 320 px（自動等比縮放填滿排列）。每張貼圖四周預留約 0.2 cm Padding，避免畫面互相黏住。
+鏡頭多樣化：全身 + 半身混合，必須包含正面、側面、俯角等不同視角。
+
+[文字設計]
+語言：【台灣繁體中文】
+文字內容：【${textList}】
+字型風格：【可愛 Q 版字型，顏色鮮豔、易讀，多色彩混合，絕對禁止使用任何綠色（包含深綠、淺綠、螢光綠、藍綠）與黑色，因為會導致去背錯誤。請改用紅、藍、紫、橘、黃等高對比色彩。】
+排版：文字大小約佔單張貼圖 1/3，文字可適度壓在衣服邊角等非重要區域，不能遮臉,也不要使用任何emoji表情符號。
+
+[表情與動作設計]
+表情必須明顯、誇張、情緒豐富：【喜、怒、哀、樂、驚訝、無語、放空、大哭】
+角色動作需與文字情境一致：例如【謝謝配雙手合十、OK比手勢、早安揮手、發呆流口水】
+${stickerCount} 格皆須為 不同動作與不同表情。
+
+[輸出格式]
+一張大圖，內含 ${layoutType} 的 ${stickerCount} 張貼圖。背景必須為 純綠色 ${bgColor}。每格角色 + 文字均附上粗白邊。`;
+  };
+
+  const fullPrompt = generatePrompt();
+
+  const handleAddWord = (word) => {
+    let currentList = textList === "" ? [] : textList.split("、").map(s => s.trim()).filter(s => s !== "");
+    if (currentList.includes(word)) {
+      const newList = currentList.filter(item => item !== word);
+      setTextList(newList.join("、"));
+      setLimitWarning("");
+      return;
+    }
+    if (currentList.length >= stickerCount) {
+      setLimitWarning(`⚠️ 只能選擇 ${stickerCount} 個詞彙 (配合貼圖格數)`);
+      setTimeout(() => setLimitWarning(""), 3000);
+      return;
+    }
+    const newList = [...currentList, word];
+    setTextList(newList.join("、"));
+    setLimitWarning("");
+  };
+
+  const handleClearText = () => {
+    setTextList("");
+    setLimitWarning("");
+  };
+
+  const handleCopy = () => {
+    const textArea = document.createElement("textarea");
+    textArea.value = fullPrompt;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      setShowCopyFeedback(true);
+      setTimeout(() => setShowCopyFeedback(false), 2000);
+    } catch (err) {
+      console.error('複製失敗', err);
+    }
+    document.body.removeChild(textArea);
+  };
+
+  const handleReset = () => {
+    setTextList("早安、晚安、謝謝、不客氣、對不起、沒問題、好的、收到、拜託、辛苦了、OK、等等");
+    setArtStyle("大眼、賽璐璐上色");
+    setLayoutType("4 × 3");
+    setStickerCount(12);
+    setBgColor("#00FF00");
+    setSelectedCategory("日常實用");
+    setLimitWarning("");
+  };
+
+  const currentCount = textList === "" ? 0 : textList.split("、").filter(s => s.trim() !== "").length;
+  // 解析目前的詞彙陣列，用於顯示標籤
+  const currentWords = textList === "" ? [] : textList.split("、").map(s => s.trim()).filter(s => s !== "");
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+      {/* 左側：設定面板 (2 columns) */}
+      <div className="lg:col-span-2 space-y-6">
+        {/* 文字設定 */}
+        <div className="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800">
+          <div className="flex items-center gap-2 mb-4 text-[#00B900]">
+            <Type size={24} />
+            <h2 className="font-bold text-lg text-slate-100">1. 文字內容</h2>
+          </div>
+          
+          <div className="flex justify-between items-center mb-2">
+            <label className="block text-sm font-medium text-slate-400">
+              分類選擇 ({selectedCategory})
+            </label>
+            <button 
+              onClick={handleClearText}
+              className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors"
+            >
+              <Trash2 size={12} /> 清空輸入框
+            </button>
+          </div>
+
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="w-full p-2.5 mb-3 border border-slate-700 rounded-lg text-slate-200 text-sm focus:ring-2 focus:ring-[#00B900] focus:border-transparent outline-none bg-slate-950 hover:bg-slate-800 transition-colors cursor-pointer"
+          >
+            {Object.keys(vocabularyDatabase).map((key) => (
+              <option key={key} value={key}>
+                {key}
+              </option>
+            ))}
+          </select>
+
+          <div className="mb-4">
+            <p className="text-xs text-slate-500 mb-2">點擊按鈕加入 (上限 {stickerCount} 個)：</p>
+            <div className="flex flex-wrap gap-1.5 h-40 overflow-y-auto custom-scrollbar p-1 border border-slate-800 rounded-lg bg-slate-950">
+              {vocabularyDatabase[selectedCategory].map((word, index) => {
+                const isSelected = currentWords.includes(word);
+                return (
+                  <button
+                    key={index}
+                    onClick={() => handleAddWord(word)}
+                    disabled={!isSelected && currentCount >= stickerCount}
+                    className={`text-xs px-2 py-1 rounded border transition-all ${
+                      isSelected 
+                        ? "bg-[#00B900] text-white border-[#00B900]" 
+                        : currentCount >= stickerCount 
+                          ? "bg-slate-800 text-slate-600 border-slate-800 cursor-not-allowed" 
+                          : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-[#00B900] hover:border-[#00B900]"
+                    }`}
+                  >
+                    {word}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          
+          <label className="block text-sm font-medium text-slate-400 mb-2">
+            目前選中的詞彙 (點擊標籤可移除)：
+          </label>
+          
+          {/* 新增：已選詞彙標籤區 (Removable Tags) */}
+          <div className="flex flex-wrap gap-2 mb-3 p-3 bg-slate-950 rounded-lg border border-slate-700 min-h-[3rem]">
+            {currentWords.length === 0 ? (
+               <span className="text-slate-600 text-sm flex items-center h-6">尚未選擇任何詞彙...</span>
+            ) : (
+               currentWords.map((word, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleAddWord(word)} // handleAddWord 會處理移除邏輯
+                    className="flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 text-blue-300 border border-blue-500/20 rounded-full text-xs hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 transition-all group"
+                  >
+                    {word}
+                    <X size={12} className="opacity-50 group-hover:opacity-100" /> 
+                  </button>
+               ))
+            )}
+          </div>
+
+          <p className="text-xs text-slate-500 mb-1">或是手動編輯字串：</p>
+          <textarea 
+            value={textList}
+            onChange={(e) => setTextList(e.target.value)}
+            className="w-full h-16 p-3 border border-slate-700 rounded-lg focus:ring-2 focus:ring-[#00B900] focus:border-transparent outline-none transition-all resize-none text-slate-400 mb-1 text-sm bg-slate-950 placeholder-slate-700 font-mono"
+            placeholder="點擊上方按鈕加入，或直接在此輸入..."
+          />
+
+          <div className="flex justify-between items-center h-6">
+            <span className={`text-xs flex items-center gap-1 ${limitWarning ? "text-red-400 font-bold animate-pulse" : "text-transparent"}`}>
+                <AlertCircle size={12} />
+                {limitWarning}
+            </span>
+            <span className={`text-xs font-mono font-medium ${currentCount >= stickerCount ? "text-red-400" : "text-slate-500"}`}>
+                {currentCount} / {stickerCount} 詞
+            </span>
+          </div>
+        </div>
+
+        {/* 風格設定 */}
+        <div className="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800">
+          <div className="flex items-center gap-2 mb-4 text-purple-400">
+            <Palette size={24} />
+            <h2 className="font-bold text-lg text-slate-100">2. 畫風設定</h2>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-2">
+                藝術風格
+              </label>
+              <input 
+                type="text" 
+                value={artStyle}
+                onChange={(e) => setArtStyle(e.target.value)}
+                className="w-full p-3 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none mb-2 bg-slate-950 text-slate-200 placeholder-slate-600"
+              />
+              <div className="flex flex-wrap gap-2">
+                {stylePresets.map((style) => (
+                  <button
+                    key={style.name}
+                    onClick={() => setArtStyle(style.value)}
+                    className="text-xs px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 hover:text-purple-400 transition-colors"
+                  >
+                    {style.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-2">
+                去背背景色 (Hex Code)
+              </label>
+              <div className="flex items-center gap-2">
+                <input 
+                  type="color" 
+                  value={bgColor}
+                  onChange={(e) => setBgColor(e.target.value)}
+                  className="h-10 w-10 p-1 rounded cursor-pointer border border-slate-700 bg-slate-800"
+                />
+                <input 
+                  type="text" 
+                  value={bgColor}
+                  onChange={(e) => setBgColor(e.target.value)}
+                  className="flex-1 p-2 border border-slate-700 rounded-lg uppercase font-mono text-sm bg-slate-950 text-slate-200"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 佈局設定 */}
+        <div className="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800">
+          <div className="flex items-center gap-2 mb-4 text-blue-400">
+            <Layout size={24} />
+            <h2 className="font-bold text-lg text-slate-100">3. 佈局與數量</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-2">
+                格數
+              </label>
+              <select 
+                value={stickerCount}
+                onChange={(e) => setStickerCount(parseInt(e.target.value))}
+                className="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+              >
+                <option value={4}>4 張</option>
+                <option value={8}>8 張</option>
+                <option value={12}>12 張</option>
+                <option value={16}>16 張</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-2">
+                排列方式
+              </label>
+              <input 
+                type="text" 
+                value={layoutType}
+                onChange={(e) => setLayoutType(e.target.value)}
+                className="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 placeholder-slate-600 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="例如: 4 x 3"
+              />
+            </div>
+          </div>
+        </div>
+        
+        {/* 引導到分割程式 */}
+        <div 
+            onClick={onSwitchToSplitter}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 rounded-xl shadow-lg flex items-center justify-between cursor-pointer hover:from-blue-500 hover:to-blue-600 transition-all border border-blue-500/30"
+        >
+            <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
+                    <Scissors size={20} />
+                </div>
+                <div>
+                    <h3 className="font-bold">下一步：分割圖片</h3>
+                    <p className="text-xs text-blue-100">生成完圖片了嗎？點此切圖</p>
+                </div>
+            </div>
+            <div className="bg-white/10 p-2 rounded-full backdrop-blur-sm">→</div>
+        </div>
+
+      </div>
+
+      {/* 右側：生成結果 */}
+      <div className="lg:col-span-3 flex flex-col h-full">
+        <div className="bg-slate-900 rounded-2xl shadow-xl overflow-hidden flex flex-col h-full border border-slate-800">
+          <div className="bg-slate-800/50 p-4 flex justify-between items-center border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-red-500 shadow-sm"></span>
+              <span className="w-3 h-3 rounded-full bg-yellow-500 shadow-sm"></span>
+              <span className="w-3 h-3 rounded-full bg-green-500 shadow-sm"></span>
+              <span className="ml-3 text-slate-400 text-sm font-mono">Generated_Prompt.txt</span>
+            </div>
+            <button 
+              onClick={handleCopy}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md ${
+                showCopyFeedback 
+                  ? "bg-green-600 text-white" 
+                  : "bg-[#00B900] text-white hover:bg-[#009900]"
+              }`}
+            >
+              {showCopyFeedback ? (
+                <>
+                  <CheckCircle size={18} /> 已複製！
+                </>
+              ) : (
+                <>
+                  <Copy size={18} /> 複製 Prompt
+                </>
+              )}
+            </button>
+          </div>
+          <div className="bg-slate-800/30 p-2 flex justify-between items-center border-b border-slate-800">
+             <div className="flex items-center gap-2 px-2">
+                <button 
+                    onClick={handleReset}
+                    className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                    <RefreshCw size={12} /> 重置設定
+                </button>
+             </div>
+          </div>
+
+          <div className="flex-1 p-6 overflow-auto custom-scrollbar bg-[#0f172a]">
+            <pre className="font-mono text-slate-300 text-sm whitespace-pre-wrap leading-relaxed">
+              {fullPrompt}
+            </pre>
+          </div>
+          
+          <div className="bg-slate-800 p-3 text-xs text-slate-500 text-center border-t border-slate-700">
+            提示：將此內容複製並貼上至 AI 繪圖工具，建議搭配「參考圖 (Image Prompt)」一同使用。
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- 圖片分割器組件 ---
+const ImageSplitter = () => {
+  const [sourceImage, setSourceImage] = useState(null);
+  const [rows, setRows] = useState(3);
+  const [cols, setCols] = useState(4);
+  const [splitImages, setSplitImages] = useState([]);
+  
+  // 去背狀態 (預設開啟)
+  const [removeBg, setRemoveBg] = useState(true);
+  const [targetColor, setTargetColor] = useState("#00FF00"); // 預設去除綠色
+  const [threshold, setThreshold] = useState(60); // 相似度閾值 (Similarity)
+  const [smoothness, setSmoothness] = useState(10); // 邊緣柔化 (Smoothness)
+  
+  // 檔名設定
+  const [filenamePrefix, setFilenamePrefix] = useState("sticker");
+  const [startNumber, setStartNumber] = useState(1);
+
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isZipLoaded, setIsZipLoaded] = useState(false); // 新增狀態：檢查 ZIP 套件是否載入
+
+  const canvasRef = useRef(null);
+
+  // 動態載入 JSZip CDN
+  useEffect(() => {
+    if (window.JSZip) {
+      setIsZipLoaded(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+    script.async = true;
+    script.onload = () => setIsZipLoaded(true);
+    document.body.appendChild(script);
+    return () => {
+      // Cleanup if needed, though usually we want to keep the library loaded
+    };
+  }, []);
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setSourceImage(event.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  useEffect(() => {
+    if (sourceImage && canvasRef.current) {
+      processSplit();
+    }
+  }, [sourceImage, rows, cols, removeBg, targetColor, threshold, smoothness, filenamePrefix, startNumber]);
+
+  // HEX 轉 RGB
+  const hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : { r: 0, g: 255, b: 0 };
+  };
+
+  const processSplit = () => {
+    setIsProcessing(true);
+    // 使用 requestAnimationFrame 避免 UI 卡頓
+    requestAnimationFrame(() => {
+      const img = new Image();
+      img.src = sourceImage;
+      img.onload = () => {
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const itemWidth = img.width / cols;
+        const itemHeight = img.height / rows;
+        
+        const newImages = [];
+        const targetRGB = hexToRgb(targetColor);
+
+        // 暫時將 canvas 設為單個貼圖的大小
+        canvas.width = itemWidth;
+        canvas.height = itemHeight;
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            // 清除畫布
+            ctx.clearRect(0, 0, itemWidth, itemHeight);
+            // 繪製部分圖像
+            ctx.drawImage(
+              img, 
+              c * itemWidth, r * itemHeight, itemWidth, itemHeight, 
+              0, 0, itemWidth, itemHeight
+            );
+            
+            // 如果開啟去背
+            if (removeBg) {
+               const imageData = ctx.getImageData(0, 0, itemWidth, itemHeight);
+               const data = imageData.data;
+               const len = data.length;
+               
+               // 歐幾里得距離最大值 sqrt(255^2 * 3) 約為 441.67
+               // 我們將 threshold 映射到 0-441
+               const distThreshold = (threshold / 100) * 200; // 稍微調整比例讓操作更線性
+               const distSmooth = (smoothness / 100) * 100;
+
+               for (let i = 0; i < len; i += 4) {
+                 const rVal = data[i];
+                 const gVal = data[i + 1];
+                 const bVal = data[i + 2];
+                 
+                 // 計算與目標顏色的距離
+                 const dist = Math.sqrt(
+                   Math.pow(rVal - targetRGB.r, 2) +
+                   Math.pow(gVal - targetRGB.g, 2) +
+                   Math.pow(bVal - targetRGB.b, 2)
+                 );
+                 
+                 if (dist < distThreshold) {
+                    // 完全透明
+                    data[i + 3] = 0;
+                 } else if (dist < distThreshold + distSmooth) {
+                    // 邊緣柔化：根據距離計算透明度 (0 ~ 255)
+                    // dist 越接近 threshold，alpha 越小
+                    const alpha = ((dist - distThreshold) / distSmooth) * 255;
+                    data[i + 3] = Math.floor(alpha);
+                 }
+               }
+               ctx.putImageData(imageData, 0, 0);
+            }
+
+            // 計算目前是第幾張圖 (0-based index)
+            const index = r * cols + c;
+            
+            // 檔名邏輯修正：預設補零至 2 位數 (01, 02...)
+            const currentNum = startNumber + index;
+            const numStr = String(currentNum).padStart(2, '0');
+            
+            // 根據設定產生檔名
+            const fileName = `${filenamePrefix}_${numStr}.png`;
+
+            newImages.push({
+              id: `sticker_${r}_${c}`,
+              src: canvas.toDataURL("image/png"),
+              name: fileName
+            });
+          }
+        }
+        setSplitImages(newImages);
+        setIsProcessing(false);
+      };
+    });
+  };
+
+  // 下載全部 (連續下載)
+  const handleDownloadAll = async () => {
+    if (splitImages.length === 0) return;
+    
+    // 簡單提示
+    alert("正在下載所有圖片，請稍候...");
+    
+    try {
+       // 連續下載 (瀏覽器可能會阻擋，但在某些環境可行)
+       splitImages.forEach((img, idx) => {
+          setTimeout(() => {
+              const link = document.createElement("a");
+              link.href = img.src;
+              link.download = img.name;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+          }, idx * 200);
+       });
+
+    } catch (e) {
+        console.error("下載失敗", e);
+    }
+  };
+
+  // 打包下載 (ZIP)
+  const handleDownloadZip = async () => {
+    if (splitImages.length === 0) return;
+
+    if (!isZipLoaded || !window.JSZip) {
+      alert("ZIP 壓縮功能正在載入中，請稍後再試...");
+      return;
+    }
+
+    try {
+      const zip = new window.JSZip();
+      
+      splitImages.forEach((img) => {
+        // 去除 data URL 前綴
+        const base64Data = img.src.replace(/^data:image\/(png|jpg);base64,/, "");
+        zip.file(img.name, base64Data, {base64: true});
+      });
+      
+      // 顯示打包中
+      const content = await zip.generateAsync({type:"blob"});
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(content);
+      link.download = `${filenamePrefix}_pack.zip`; // 使用設定的前綴作為檔名
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+    } catch (e) {
+      console.error("ZIP 壓縮失敗", e);
+      alert("ZIP 壓縮失敗，請重試");
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* 左側：設定與上傳 */}
+      <div className="lg:col-span-1 space-y-6">
+        <div className="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800">
+           <div className="flex items-center gap-2 mb-4 text-blue-400">
+            <Upload size={24} />
+            <h2 className="font-bold text-lg text-slate-100">1. 上傳與設定</h2>
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-slate-400 mb-2">
+              上傳 AI 生成的貼圖大圖
+            </label>
+            <div className="relative border-2 border-dashed border-slate-700 rounded-lg p-8 text-center hover:bg-slate-800 transition-colors group bg-slate-950/50">
+                <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <div className="flex flex-col items-center gap-2 text-slate-500 group-hover:text-blue-400">
+                    <ImageIcon size={32} />
+                    <span className="text-sm">點擊或拖曳圖片至此</span>
+                </div>
+            </div>
+            <p className="text-[10px] text-slate-500 mt-2 text-center">
+              建議尺寸：1480 × 960 px (含 12 張)
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-4">
+             <div>
+               <label className="block text-sm font-medium text-slate-400 mb-2">直行 (Cols)</label>
+               <input 
+                 type="number" min="1" max="10"
+                 value={cols} 
+                 onChange={(e) => setCols(parseInt(e.target.value) || 1)}
+                 className="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+               />
+             </div>
+             <div>
+               <label className="block text-sm font-medium text-slate-400 mb-2">橫列 (Rows)</label>
+               <input 
+                 type="number" min="1" max="10"
+                 value={rows} 
+                 onChange={(e) => setRows(parseInt(e.target.value) || 1)}
+                 className="w-full p-2 border border-slate-700 rounded-lg bg-slate-950 text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+               />
+             </div>
+          </div>
+
+          {/* 新增：檔名設定區塊 */}
+          <div className="pt-4 border-t border-slate-800">
+             <div className="flex items-center gap-2 mb-3 text-slate-300">
+                <FileText size={16} />
+                <h3 className="text-sm font-bold">檔名設定 (File Naming)</h3>
+             </div>
+             <div className="grid grid-cols-2 gap-4">
+                 <div>
+                   <label className="block text-xs font-medium text-slate-500 mb-1">檔名前綴</label>
+                   <input 
+                     type="text" 
+                     value={filenamePrefix} 
+                     onChange={(e) => setFilenamePrefix(e.target.value)}
+                     className="w-full p-2 text-sm border border-slate-700 rounded-lg font-mono bg-slate-950 text-slate-200 placeholder-slate-600"
+                     placeholder="sticker"
+                   />
+                 </div>
+                 <div>
+                   <label className="block text-xs font-medium text-slate-500 mb-1 flex items-center gap-1">
+                      <Hash size={10} /> 起始編號
+                   </label>
+                   <input 
+                     type="number" min="0"
+                     value={startNumber} 
+                     onChange={(e) => setStartNumber(parseInt(e.target.value) || 0)}
+                     className="w-full p-2 text-sm border border-slate-700 rounded-lg font-mono bg-slate-950 text-slate-200"
+                   />
+                 </div>
+             </div>
+             <p className="text-[10px] text-slate-500 mt-2">
+                範例：{filenamePrefix}_{String(startNumber).padStart(2, '0')}.png, {filenamePrefix}_{String(startNumber+1).padStart(2, '0')}.png... (自動補零)
+             </p>
+          </div>
+        </div>
+        
+        {/* 去背設定區塊 - 大幅升級 */}
+        <div className="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800">
+           <div className="flex items-center gap-2 mb-4 text-emerald-500">
+            <Eraser size={24} />
+            <h2 className="font-bold text-lg text-slate-100">3. 去背設定 (Chroma Key)</h2>
+          </div>
+          
+          <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-800">
+             <label className="text-sm font-medium text-slate-300">啟用色彩去背</label>
+             <button 
+                onClick={() => setRemoveBg(!removeBg)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${removeBg ? 'bg-emerald-600' : 'bg-slate-700'}`}
+             >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${removeBg ? 'translate-x-6' : 'translate-x-1'}`} />
+             </button>
+          </div>
+          
+          {removeBg && (
+            <div className="space-y-4 animate-fadeIn">
+              {/* 顏色選擇 */}
+              <div>
+                 <label className="text-xs font-medium text-slate-500 mb-1 flex items-center gap-1">
+                    <Droplet size={12} /> 去除顏色 (Target Color)
+                 </label>
+                 <div className="flex gap-2 items-center">
+                    <input 
+                        type="color" 
+                        value={targetColor}
+                        onChange={(e) => setTargetColor(e.target.value)}
+                        className="h-8 w-8 rounded cursor-pointer border border-slate-600 p-0.5 bg-slate-800"
+                    />
+                    <input 
+                        type="text" 
+                        value={targetColor}
+                        onChange={(e) => setTargetColor(e.target.value)}
+                        className="flex-1 text-xs p-1.5 border border-slate-700 rounded font-mono uppercase bg-slate-950 text-slate-200"
+                    />
+                 </div>
+              </div>
+
+              {/* 相似度滑桿 */}
+              <div>
+                <div className="flex justify-between text-xs text-slate-500 mb-1">
+                  <span>相似度 (Similarity)</span>
+                  <span>{threshold}%</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="1" max="100" 
+                  value={threshold} 
+                  onChange={(e) => setThreshold(parseInt(e.target.value))}
+                  className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                />
+              </div>
+
+              {/* 柔化滑桿 */}
+              <div>
+                <div className="flex justify-between text-xs text-slate-500 mb-1">
+                  <span>邊緣柔化 (Smoothness)</span>
+                  <span>{smoothness}%</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0" max="50" 
+                  value={smoothness} 
+                  onChange={(e) => setSmoothness(parseInt(e.target.value))}
+                  className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                />
+              </div>
+              
+              <div className="text-[10px] text-slate-500 bg-slate-950 p-2 rounded border border-slate-800">
+                 💡 調整建議：先拉動「相似度」直到背景消失，再微調「柔化」讓邊緣不那麼銳利。
+              </div>
+            </div>
+          )}
+        </div>
+
+        {sourceImage && (
+             <div className="bg-slate-900 p-4 rounded-2xl shadow-xl border border-slate-800">
+                <h3 className="text-sm font-bold text-slate-300 mb-2">原始預覽</h3>
+                <img src={sourceImage} alt="Source" className="w-full rounded-lg border border-slate-800" />
+             </div>
+        )}
+      </div>
+
+      {/* 右側：分割結果 */}
+      <div className="lg:col-span-2">
+         <div className="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800 h-full flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+                 <div className="flex items-center gap-2 text-[#00B900]">
+                    <Scissors size={24} />
+                    <h2 className="font-bold text-lg text-slate-100">2. 分割結果 ({splitImages.length} 張)</h2>
+                    {isProcessing && <span className="text-xs text-slate-500 animate-pulse">處理中...</span>}
+                 </div>
+                 
+                 {splitImages.length > 0 && (
+                   <div className="flex gap-2">
+                     <button 
+                        onClick={handleDownloadAll}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                     >
+                        <Download size={14} /> 下載全部 (散圖)
+                     </button>
+                     <button 
+                        onClick={handleDownloadZip}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
+                     >
+                        <Archive size={14} /> 下載 ZIP
+                     </button>
+                   </div>
+                 )}
+            </div>
+
+            {splitImages.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-800 rounded-xl min-h-[300px] bg-slate-950/30">
+                    <ImageIcon size={48} className="mb-2 opacity-20" />
+                    <p>請先上傳圖片以進行分割</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 overflow-y-auto custom-scrollbar p-2 flex-1 max-h-[600px] bg-slate-950/30 rounded-xl">
+                    {splitImages.map((img) => (
+                        <div key={img.id} className="group relative bg-slate-800 rounded-lg overflow-hidden border border-slate-700 hover:shadow-lg hover:border-blue-500/50 transition-all">
+                             {/* 背景圖案改為透明格，方便檢查去背效果 */}
+                             <div className="w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] bg-white/5">
+                                <img src={img.src} alt={img.name} className="w-full h-auto object-contain" />
+                             </div>
+                             
+                             <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-2 backdrop-blur-[2px]">
+                                <a 
+                                    href={img.src} 
+                                    download={img.name}
+                                    className="p-2 bg-white/20 rounded-full hover:bg-white/40 text-white backdrop-blur-sm transition-colors"
+                                    title="下載此張"
+                                >
+                                    <Download size={20} />
+                                </a>
+                             </div>
+                             <div className="absolute bottom-0 left-0 right-0 bg-slate-900/90 text-[10px] text-center py-1 text-slate-300 truncate px-1 border-t border-slate-800">
+                                {img.name}
+                             </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+            {/* Hidden Canvas for processing */}
+            <canvas ref={canvasRef} className="hidden"></canvas>
+         </div>
+      </div>
+    </div>
+  );
+};
+
+// --- 主程式 App ---
+const App = () => {
+  const [activeTab, setActiveTab] = useState("generator");
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        <header className="mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+              <span className="bg-[#00B900] text-white p-2 rounded-lg text-xl shadow-[0_0_15px_rgba(0,185,0,0.4)]">LINE</span>
+              貼圖工具箱
+            </h1>
+            <p className="text-slate-400 mt-2 text-sm">AI 輔助貼圖製作：從 Prompt 生成到圖片分割一站式完成</p>
+          </div>
+
+          <div className="bg-slate-900 p-1 rounded-xl border border-slate-800 shadow-lg flex">
+            <button
+                onClick={() => setActiveTab("generator")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${
+                    activeTab === "generator" 
+                    ? "bg-[#00B900] text-white shadow-md" 
+                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                }`}
+            >
+                <Type size={16} /> Prompt 生成器
+            </button>
+            <button
+                onClick={() => setActiveTab("splitter")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${
+                    activeTab === "splitter" 
+                    ? "bg-blue-600 text-white shadow-md" 
+                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                }`}
+            >
+                <Scissors size={16} /> 圖片分割工具
+            </button>
+          </div>
+        </header>
+
+        {activeTab === "generator" ? (
+            <PromptGenerator onSwitchToSplitter={() => setActiveTab("splitter")} />
+        ) : (
+            <ImageSplitter />
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+export default App;
