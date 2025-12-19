@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>地質探險家：福爾摩沙的試煉</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,8 +12,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Noto Sans TC', sans-serif; }
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            touch-action: manipulation; /* Prevent double-tap zoom */
+        }
         
+        /* Animations */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -31,9 +35,14 @@
             50% { transform: translateY(0); }
         }
         .animate-bounce-custom { animation: bounce-custom 1s infinite; }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.8); }
+        }
         
         /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
@@ -41,6 +50,11 @@
         .bg-grid-pattern {
             background-image: radial-gradient(#334155 1px, transparent 1px);
             background-size: 30px 30px;
+        }
+
+        /* Map Node Pulse */
+        .node-pulse {
+            animation: pulse-glow 2s infinite;
         }
     </style>
 </head>
@@ -128,7 +142,7 @@
                                 { id: 'r3_4', q: '河流下游的河道寬度通常如何？', options: ['最窄', '最寬', '與上游一樣', '不一定'], a: 1 },
                                 { id: 'r3_5', q: '為什麼下游容易發生水災？', options: ['地勢低平排水慢', '石頭太多', '流速太快', '沒有植物'], a: 0 },
                                 { id: 'r3_6', q: '將泥沙沖刷到更遠的地方堆積，主要受什麼因素影響？', options: ['石頭顏色', '流速與坡度', '水的溫度', '魚的數量'], a: 1 },
-                                { id: 'r3_7', q: '在「土堆坡度」實驗中，緩坡代表河流的哪一段？', options: ['上游', '中下游', '瀑布', '源頭'], a: 1 },
+                                { id: 'r3_7', q: '在「土堆坡度與流水作用的關係」實驗中，緩坡代表河流的哪一段？', options: ['上游', '中下游', '瀑布', '源頭'], a: 1 },
                                 { id: 'r3_8', q: '下游的堆積作用明顯，是因為？', options: ['流速變快', '流速變慢', '水量變少', '沒有石頭'], a: 1 },
                                 { id: 'r3_9', q: '下列哪種景觀最不可能出現在下游？', options: ['寬廣的河面', '平坦的平原', '深邃的V型谷', '細小的沙粒'], a: 2 },
                                 { id: 'r3_10', q: '三角洲的形成主要是因為哪種作用？', options: ['侵蝕', '搬運', '堆積', '風化'], a: 2 },
@@ -155,6 +169,7 @@
                                 { id: 'c1_8', q: '海蝕平台通常是在什麼時候露出水面？', options: ['漲潮', '退潮', '颱風天', '海嘯時'], a: 1 },
                                 { id: 'c1_9', q: '野柳女王頭的頸部越來越細，主要是什麼作用？', options: ['差異侵蝕與風化', '人為破壞', '地震搖晃', '植物生長'], a: 0 },
                                 { id: 'c1_10', q: '下列哪個地點以「蕈狀岩」聞名？', options: ['野柳', '七股', '墾丁沙灘', '清水斷崖'], a: 0 },
+                                { id: 'c1_11', q: '海水的哪種運動是造成海岸侵蝕的主要動力？', options: ['海浪', '洋流', '潮汐', '漩渦'], a: 0 },
                             ]
                         },
                         {
@@ -607,7 +622,7 @@
                 <div class="bg-slate-900 border-b border-slate-700 p-2 flex justify-between items-center z-20 shadow-lg">
                     <div class="flex items-center gap-2">
                         <div class="bg-slate-800 p-1.5 rounded-full border border-slate-600">
-                             <div class="font-bold text-xs ${player.role === 'Mage' ? 'text-purple-400' : 'text-red-400'} w-4 h-4 text-center">${player.name.substring(0,1)}</div>
+                             <div class="font-bold text-xs ${player.role === 'Mage' ? 'text-purple-400' : 'text-red-400'} w-4 h-4 text-center flex items-center justify-center">${player.name.substring(0,1)}</div>
                         </div>
                         <div class="flex flex-col">
                             <div class="text-xs text-slate-400 leading-none">${player.name}</div>
@@ -642,7 +657,7 @@
 
                 let classes = "w-16 h-16 rounded-full flex items-center justify-center border-4 shadow-xl transition-all duration-300 cursor-pointer ";
                 if (isCompleted) classes += "bg-amber-100 border-amber-500 text-amber-600 scale-100 ";
-                else if (isNext) classes += "bg-amber-600 border-white text-white animate-pulse shadow-amber-500/50 ";
+                else if (isNext) classes += "bg-amber-600 border-white text-white animate-pulse node-pulse ";
                 else if (!isUnlocked) classes += "bg-slate-700 border-slate-600 text-slate-500 grayscale ";
 
                 html += `
