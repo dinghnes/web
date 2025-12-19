@@ -3,1018 +3,1051 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>地質探險家：福爾摩沙的試煉</title>
-    <!-- Tailwind CSS (樣式庫) -->
+    <title>西寧探險家：四界傳說</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons (圖標庫) -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Google Fonts (字型) -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     
     <style>
         body { 
             font-family: 'Noto Sans TC', sans-serif; 
-            touch-action: manipulation; /* 防止雙擊縮放 */
+            touch-action: manipulation;
             background-color: #0f172a;
             color: #f1f5f9;
         }
-        
-        /* 動畫定義 */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
-        
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(40px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
         .animate-slide-up { animation: slideUp 0.4s ease-out forwards; }
-        
-        @keyframes bounce-custom {
-            0%, 100% { transform: translateY(-5%); }
-            50% { transform: translateY(0); }
-        }
+        @keyframes bounce-custom { 0%, 100% { transform: translateY(-5%); } 50% { transform: translateY(0); } }
         .animate-bounce-custom { animation: bounce-custom 1s infinite; }
+        @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.5); } 50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.8); } }
+        .node-pulse { animation: pulse-glow 2s infinite; }
+        @keyframes boss-pulse { 0%, 100% { box-shadow: 0 0 15px rgba(220, 38, 38, 0.6); transform: scale(1); } 50% { box-shadow: 0 0 30px rgba(220, 38, 38, 0.9); transform: scale(1.1); } }
+        .node-boss { animation: boss-pulse 3s infinite; }
 
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
-            50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.8); }
-        }
-        
-        /* 自定義捲軸 */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .bg-grid-pattern { background-image: radial-gradient(#334155 1px, transparent 1px); background-size: 30px 30px; }
+        
+        .guide-content h3 { color: #fbbf24; font-size: 1.1rem; font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; border-bottom: 1px solid #4b5563; padding-bottom: 0.25rem; }
+        .guide-content h3:first-child { margin-top: 0; }
+        .guide-content p { margin-bottom: 0.5rem; color: #cbd5e1; line-height: 1.6; font-size: 0.95rem; }
+        .guide-content strong { color: #fff; font-weight: 900; }
+        .guide-content .highlight { color: #f472b6; font-weight: bold; }
+        .guide-content ul { list-style-type: disc; padding-left: 1.2rem; margin-bottom: 0.5rem; color: #94a3b8; font-size: 0.9rem; }
+        .guide-content li { margin-bottom: 0.25rem; }
 
-        .bg-grid-pattern {
-            background-image: radial-gradient(#334155 1px, transparent 1px);
-            background-size: 30px 30px;
-        }
-
-        /* 地圖節點脈衝效果 */
-        .node-pulse {
-            animation: pulse-glow 2s infinite;
-        }
+        /* Leaderboard Table Alignment */
+        .leaderboard-table { table-layout: fixed; }
+        .leaderboard-table th { @apply text-left p-3 text-amber-500 border-b border-slate-600 font-bold bg-slate-800; }
+        .leaderboard-table td { @apply p-3 border-b border-slate-700/50 truncate; }
+        .leaderboard-table tr:hover { @apply bg-slate-800/50; }
+        .col-rank { width: 15%; text-align: center; }
+        .col-player { width: 30%; }
+        .col-role { width: 30%; }
+        .col-level { width: 15%; text-align: center; }
+        .col-score { width: 10%; text-align: right; }
     </style>
 </head>
 <body class="overflow-hidden select-none h-screen flex flex-col">
 
-    <!-- 遊戲主容器 -->
-    <div id="app" class="w-full h-full flex flex-col relative">
-        <!-- 內容將由 JavaScript 動態生成 -->
-    </div>
+    <div id="app" class="w-full h-full flex flex-col relative"></div>
 
     <script>
-        // --- 遊戲資料 (角色與題庫) ---
-
+        // --- 設定 (請在此填入您的 GAS URL) ---
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxUjnGfXcFhDSSfWCHUvRhSgoZ_lY_Bd2l-50O5i3KSKMq88Rjhpaq2Tc_jDQppe_tiUQ/exec";
+        
+        // --- CHARACTERS ---
         const CHARACTERS = [
-            {
-                id: 'kegui', name: '魔法師科貴', gender: 'boy', role: 'Mage',
-                desc: '西寧國小智力擔當，擅長快速吸收知識。',
-                abilityName: '博學多聞', abilityDesc: '答對問題獲得的經驗值 +30%',
-                stats: { hp: 100, xpBonus: 1.3, dmgReduction: 0, healOnHit: 0 }
-            },
-            {
-                id: 'chongyi', name: '野蠻人崇亦', gender: 'boy', role: 'Barbarian',
-                desc: '體育課的王者，擁有驚人的體力。',
-                abilityName: '蠻荒體魄', abilityDesc: '初始 HP 高達 130',
-                stats: { hp: 130, xpBonus: 1.0, dmgReduction: 0, healOnHit: 0 }
-            },
-            {
-                id: 'peiyu', name: '麻法師姵妤', gender: 'girl', role: 'Mage',
-                desc: '心思細膩，懂得如何在戰鬥中保護自己。',
-                abilityName: '元素治癒', abilityDesc: '答對問題時回復 5 點 HP',
-                stats: { hp: 100, xpBonus: 1.0, dmgReduction: 0, healOnHit: 5 }
-            },
-            {
-                id: 'yunqi', name: '女戰士妘萁', gender: 'girl', role: 'Warrior',
-                desc: '亞馬遜的後裔，擅長防禦敵人的攻擊。',
-                abilityName: '戰鬥格擋', abilityDesc: '答錯時受到的傷害減少 5 點',
-                stats: { hp: 110, xpBonus: 1.0, dmgReduction: 5, healOnHit: 0 }
-            },
-            {
-                id: 'book_immortal', name: '西寧書仙老頭', gender: 'elder', role: 'Guide',
-                desc: '傳說中隱居在圖書館深處的老者，知曉所有地質奧祕。',
-                abilityName: '地質天書', abilityDesc: '無法戰鬥與答題，但能查看所有關卡的重點攻略。',
-                stats: { hp: 1, xpBonus: 0, dmgReduction: 0, healOnHit: 0 }
-            }
+            { id: 'kegui', name: '魔法師科貴', gender: 'boy', role: 'Mage', desc: '西寧國小智力擔當，擅長快速吸收知識。', abilityName: '博學多聞', abilityDesc: '答對問題獲得的經驗值 +30%', stats: { hp: 100, xpBonus: 1.3, dmgReduction: 0, healOnHit: 0 }, avatar: '🧙‍♂️' },
+            { id: 'chongyi', name: '野蠻人崇亦', gender: 'boy', role: 'Barbarian', desc: '體育課的王者，擁有驚人的體力。', abilityName: '蠻荒體魄', abilityDesc: '初始 HP 高達 130', stats: { hp: 130, xpBonus: 1.0, dmgReduction: 0, healOnHit: 0 }, avatar: '🏋️' },
+            { id: 'peiyu', name: '麻法師姵妤', gender: 'girl', role: 'Mage', desc: '心思細膩，懂得如何在戰鬥中保護自己。', abilityName: '元素治癒', abilityDesc: '答對問題時回復 5 點 HP', stats: { hp: 100, xpBonus: 1.0, dmgReduction: 0, healOnHit: 5 }, avatar: '🧚‍♀️' },
+            { id: 'yunqi', name: '女戰士妘萁', gender: 'girl', role: 'Warrior', desc: '亞馬遜的後裔，擅長防禦敵人的攻擊。', abilityName: '戰鬥格擋', abilityDesc: '答錯時受到的傷害減少 5 點', stats: { hp: 110, xpBonus: 1.0, dmgReduction: 5, healOnHit: 0 }, avatar: '🧝‍♀️' },
+            { id: 'book_immortal', name: '西寧書仙老頭', gender: 'elder', role: 'Guide', desc: '傳說中隱居在圖書館深處的老者，知曉所有奧祕。', abilityName: '萬卷天書', abilityDesc: '無法戰鬥與答題，但能查看所有關卡的重點攻略。', stats: { hp: 1, xpBonus: 0, dmgReduction: 0, healOnHit: 0 }, avatar: '👴' }
         ];
 
-        // 攻略內容資料 (重點整理)
+        // --- GUIDE DATA ---
         const GUIDE_DATA = {
-            'river': `
-                <h3 class="text-xl font-bold text-amber-400 mb-2">河流地形重點攻略</h3>
-                <ul class="list-disc pl-5 space-y-2 text-slate-300">
-                    <li><strong class="text-white">上游：</strong>河道窄、坡度陡、流速急。
-                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
-                            <li>作用力：侵蝕、搬運作用最強。</li>
-                            <li>景觀：V型谷、峽谷（太魯閣）、瀑布、壺穴。</li>
-                            <li>石頭：有稜有角的巨石。</li>
-                        </ul>
-                    </li>
-                    <li><strong class="text-white">中游：</strong>河道漸寬、坡度稍緩。
-                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
-                            <li>石頭：鵝卵石（經搬運碰撞磨圓）。</li>
-                            <li>曲流：
-                                <span class="text-red-400">凹岸</span>（水流急/侵蝕/水深）、
-                                <span class="text-green-400">凸岸</span>（水流慢/堆積/水淺）。
-                            </li>
-                        </ul>
-                    </li>
-                    <li><strong class="text-white">下游：</strong>河道寬、坡度平、流速慢。
-                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
-                            <li>作用力：堆積作用最強。</li>
-                            <li>石頭：泥沙、細石。</li>
-                            <li>景觀：沖積平原、三角洲、牛軛湖。</li>
-                        </ul>
-                    </li>
-                </ul>
-            `,
-            'coast': `
-                <h3 class="text-xl font-bold text-cyan-400 mb-2">海岸地形重點攻略</h3>
-                <ul class="list-disc pl-5 space-y-2 text-slate-300">
-                    <li><strong class="text-white">海蝕地形 (侵蝕作用)：</strong>
-                        <p class="text-sm text-slate-400 mt-1">成因：海浪拍打、磨蝕。</p>
-                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
-                            <li>豆腐岩（和平島）、蕈狀岩（女王頭-差異侵蝕）。</li>
-                            <li>海蝕洞 → 海蝕門（拱門） → 海蝕柱。</li>
-                            <li>海蝕溝（老梅綠石槽）、海蝕平臺、海蝕崖。</li>
-                        </ul>
-                    </li>
-                    <li><strong class="text-white">海積地形 (堆積作用)：</strong>
-                        <p class="text-sm text-slate-400 mt-1">成因：海浪搬運泥沙堆積。</p>
-                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
-                            <li>沙灘（福隆）、沙洲（離岸沙洲）。</li>
-                            <li>沙嘴、潟湖（七股）。</li>
-                            <li>陸連島（金樽）：連接小島與陸地的沙洲。</li>
-                        </ul>
-                    </li>
-                </ul>
-            `,
-            'rocks': `
-                <h3 class="text-xl font-bold text-gray-400 mb-2">岩石與礦物重點攻略</h3>
-                <ul class="list-disc pl-5 space-y-2 text-slate-300">
-                    <li><strong class="text-white">岩石分類：</strong>
-                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
-                            <li><span class="text-red-400">火成岩</span>（岩漿冷卻）：安山岩（廟宇石獅）、花崗岩（建材/有黑雲母）、玄武岩（氣孔/澎湖）。</li>
-                            <li><span class="text-yellow-400">沉積岩</span>（層狀堆積）：頁岩、砂岩、石灰岩（水泥原料/方解石/化石）。</li>
-                            <li><span class="text-blue-400">變質岩</span>（高溫高壓）：大理岩（變自石灰岩）、板岩（變自頁岩）、花崗片麻岩。</li>
-                        </ul>
-                    </li>
-                    <li><strong class="text-white">礦物硬度 (摩氏硬度)：</strong>
-                        <p class="text-sm text-slate-400 mt-1">滑石(1,最軟) < 石膏(2) < 指甲 < 方解石(3) < 銅幣 < 螢石 < 磷灰石 < 刀片/玻璃 < 正長石 < 石英(7) < 剛玉 < 金剛石(10,最硬)。</p>
-                    </li>
-                    <li><strong class="text-white">特性辨識：</strong>
-                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
-                            <li>方解石：滴稀鹽酸會冒泡。</li>
-                            <li>硫黃：黃色、火藥味。</li>
-                            <li>石墨：黑色、導電、鉛筆芯。</li>
-                            <li>滑石：滑膩感、爽身粉。</li>
-                        </ul>
-                    </li>
-                </ul>
-            `,
-            'disaster': `
-                <h3 class="text-xl font-bold text-red-400 mb-2">地震與防災重點攻略</h3>
-                <ul class="list-disc pl-5 space-y-2 text-slate-300">
-                    <li><strong class="text-white">地震成因：</strong>板塊擠壓錯動。</li>
-                    <li><strong class="text-white">名詞解釋：</strong>
-                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
-                            <li>震源：地底錯動的起始點。</li>
-                            <li>震央：震源正上方的地表位置。</li>
-                            <li>地震深度：震源到震央的垂直距離。</li>
-                        </ul>
-                    </li>
-                    <li><strong class="text-white">規模 vs 震度：</strong>
-                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
-                            <li><span class="text-yellow-400">芮氏規模</span>：能量大小，有小數點，無單位，全臺只有一個數值。</li>
-                            <li><span class="text-yellow-400">震度</span>：搖晃程度，分 0~4, 5弱, 5強, 6弱, 6強, 7 (共10級)，各地不同。</li>
-                        </ul>
-                    </li>
-                    <li><strong class="text-white">防災重點：</strong>
-                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
-                            <li>口訣：趴下、掩護、穩住。</li>
-                            <li>避難包：水、乾糧、手電筒、電池、證件、哨子（不放電動玩具）。</li>
-                            <li>家庭防災卡：約定緊急集合點與聯絡人。</li>
-                        </ul>
-                    </li>
-                </ul>
-            `
+            'river': `<div class="guide-content"><h3>1. 上游：陡峭與侵蝕</h3><p>河流上游就像溜滑梯的頂端，地勢很陡，水流<strong>非常急</strong>。</p><ul><li><strong>作用力</strong>：水流太快了，把石頭沖刷下來（<span class="highlight">侵蝕作用</span>）並搬運走（<span class="highlight">搬運作用</span>）。</li><li><strong>地形</strong>：水流向下切割，形成深谷，如<strong>V型谷</strong>、壯觀的<strong>峽谷</strong>（太魯閣）和<strong>瀑布</strong>。</li><li><strong>石頭</strong>：因為剛崩落不久，還沒滾遠，所以都是<strong>有稜有角的大石頭</strong>。</li><li><strong>特殊景觀</strong>：水流帶動小石頭在凹洞裡轉圈圈，磨出圓圓的洞，叫做<span class="highlight">壺穴</span>（基隆河上游常見）。</li></ul><h3>2. 中游：變寬與搬運</h3><p>水流到了中間，速度稍微慢一點點，但還是能搬東西。</p><ul><li><strong>石頭</strong>：石頭在滾動過程中互相碰撞，尖角被磨掉了，變成圓圓胖胖的<span class="highlight">鵝卵石</span>。</li><li><strong>曲流</strong>：河道彎彎曲曲的。<ul><li><strong>凹岸</strong>：水流沖向這邊，水快、水深，發生<span class="highlight">侵蝕作用</span>（地基會被掏空，危險！）。</li><li><strong>凸岸</strong>：水流流過這邊變慢，發生<span class="highlight">堆積作用</span>（變成沙灘，適合玩水）。</li></ul></li></ul><h3>3. 下游：平坦與堆積</h3><p>快到大海了，地勢變平，水流<strong>變慢</strong>，搬不動東西了。</p><ul><li><strong>作用力</strong>：泥沙通通放下來，叫做<span class="highlight">堆積作用</span>。</li><li><strong>地形</strong>：形成寬廣的<strong>沖積平原</strong>（我們住的地方）。在出海口會堆成<span class="highlight">三角洲</span>。</li><li><strong>石頭</strong>：剩下細細的<strong>泥沙</strong>。</li></ul></div>`,
+            'coast': `<div class="guide-content"><h3>1. 海浪的雕刻師：海蝕地形</h3><p>海浪不斷拍打岩石，把石頭「磨掉」或「打穿」，這就是<span class="highlight">侵蝕作用</span>。</p><ul><li><strong>豆腐岩</strong>：岩石有節理（裂縫），海水沿著裂縫切下去，切成一塊塊像豆腐（基隆和平島）。</li><li><strong>蕈狀岩</strong>：例如<span class="highlight">女王頭</span>。上面石頭硬，下面石頭軟，下面的脖子被風和海水磨細了（差異侵蝕）。</li><li><strong>演變過程</strong>：海蝕洞（挖一個洞）→ <span class="highlight">海蝕門/拱門</span>（打穿了）→ <span class="highlight">海蝕柱</span>（頂部塌了剩柱子）。</li><li><strong>老梅綠石槽</strong>：是<span class="highlight">海蝕溝</span>，上面長滿了綠藻。</li></ul><h3>2. 海浪的搬運工：海積地形</h3><p>海浪把沙子搬來搬去，堆在岸邊，這就是<span class="highlight">堆積作用</span>。</p><ul><li><strong>沙灘</strong>：福隆海水浴場金黃色的沙灘。</li><li><strong>沙洲</strong>：堆積在海中間長長的一條沙子（像鯤鯓）。</li><li><strong>潟湖</strong>：被沙洲擋住，在內側平靜的水域（像七股潟湖，適合養蚵）。</li><li><strong>陸連島</strong>：沙子堆積把小島和陸地連起來了（台東金樽）。</li></ul></div>`,
+            'rocks': `<div class="guide-content"><h3>1. 岩石三大家族</h3><p>岩石依照「怎麼形成的」分成三大類：</p><ul><li><strong>火成岩</strong>（火氣很大）：岩漿冷卻變成的。<ul><li><span class="highlight">安山岩</span>：很硬，常拿來做廟宇的石獅、龍柱。</li><li><span class="highlight">玄武岩</span>：黑黑的，有氣孔（岩漿氣體跑掉），澎湖最多。</li><li><span class="highlight">花崗岩</span>：有黑、白、肉紅三種顏色顆粒（黑雲母、石英、長石），做地板常用。</li></ul></li><li><strong>沉積岩</strong>（層層堆疊）：泥沙一層層堆起來壓實的。<ul><li><span class="highlight">石灰岩</span>：以前是珊瑚礁，滴到<strong>稀鹽酸</strong>會冒泡泡（產生二氧化碳），是做水泥的原料。</li><li><strong>化石</strong>：最容易在沉積岩裡發現化石！</li></ul></li><li><strong>變質岩</strong>（壓力山大）：岩石被高溫高壓「烤」過變形了。<ul><li><span class="highlight">大理岩</span>：由石灰岩變來的，有美麗花紋。</li><li><span class="highlight">板岩</span>：由頁岩變來的，原住民拿來蓋石板屋。</li></ul></li></ul><h3>2. 礦物比一比</h3><ul><li><strong>硬度</strong>（誰最硬？）：<span class="highlight">滑石</span>（最軟） < 指甲 < <span class="highlight">方解石</span>（銅幣） < <span class="highlight">石英</span>（比玻璃硬） < <span class="highlight">金剛石</span>（鑽石，最硬）。</li><li><strong>特性</strong>：<ul><li><strong>硫磺</strong>：黃色，有臭雞蛋味，做火藥。</li><li><strong>石墨</strong>：黑色，會導電，做鉛筆芯。</li><li><strong>滑石</strong>：摸起來滑滑的，做爽身粉。</li></ul></li></ul></div>`,
+            'disaster': `<div class="guide-content"><h3>1. 地震的大小怎麼看？</h3><p>地震報告會看到兩個重要的數字，千萬別搞混！</p><ul><li><span class="highlight">芮氏規模</span>：代表地震釋放的<strong>能量大小</strong>。<ul><li>全台灣<strong>只有一個數值</strong>。</li><li>有小數點，沒有單位。</li></ul></li><li><span class="highlight">震度</span>：代表你感覺到的<strong>搖晃程度</strong>。<ul><li><strong>各地不同</strong>。</li><li>分級：0級（無感）~ 7級（劇烈），共10個等級。</li></ul></li></ul><h3>2. 地震來了怎麼辦？</h3><ul><li><strong>保命三步驟</strong>：<span class="highlight">趴下、掩護、穩住</span>。</li><li><strong>不可以</strong>：搭電梯、慌張亂跑、點火。</li><li><strong>緊急避難包</strong>：要放乾糧、水、手電筒、電池、哨子、證件、保暖衣物。</li></ul></div>`,
+            'magnet1': `<div class="guide-content"><h3>1. 磁鐵的個性</h3><ul><li><strong>磁極</strong>：磁力最強的地方在<strong>兩端</strong>（N極和S極）。</li><li><strong>相處之道</strong>：<span class="highlight">同極相斥</span>，<span class="highlight">異極相吸</span>。</li></ul><h3>2. 地球就是大磁鐵</h3><ul><li><strong>指北針原理</strong>：指北針的箭頭是N極。因為異極相吸，它會被地球的磁場吸引。</li><li><strong>重要觀念</strong>：地理的北極附近，其實是<span class="highlight">地磁的S極</span>；地理的南極附近，是<span class="highlight">地磁的N極</span>。</li></ul></div>`,
+            'magnet2': `<div class="guide-content"><h3>1. 電也能生磁</h3><ul><li><strong>奧斯特的發現</strong>：通電的電線旁邊，指北針會偏轉！</li><li><strong>安培右手定則</strong>（簡單版）：<ul><li>電線放在指北針<strong>上方</strong> vs <strong>下方</strong>，指針偏轉方向會<span class="highlight">相反</span>。</li><li>電流方向改變，指針偏轉方向也會<span class="highlight">相反</span>。</li></ul></li></ul><h3>2. 超級電磁鐵</h3><p>怎麼讓電磁鐵變強？</p><ul><li><strong>加強法 1</strong>：<span class="highlight">串聯電池</span>。</li><li><strong>加強法 2</strong>：<span class="highlight">增加線圈圈數</span>。</li><li><strong>加強法 3</strong>：線圈裡面放入<span class="highlight">鐵棒</span>。</li></ul></div>`,
+            'magnet3': `<div class="guide-content"><h3>1. 生活中的馬達</h3><ul><li><strong>原理</strong>：利用<span class="highlight">同極相斥、異極相吸</span>的原理，讓軸心轉動。</li><li><strong>應用</strong>：<span class="highlight">電風扇、洗衣機、吹風機</span>。</li></ul><h3>2. 磁浮列車</h3><ul><li><strong>原理</strong>：利用磁力讓車體<span class="highlight">懸浮</span>。</li><li><strong>優點</strong>：<span class="highlight">沒有摩擦力</span>，速度快、噪音小。</li></ul></div>`,
+            'solution1': `<div class="guide-content"><h3>1. 溶解</h3><ul><li>物質在水中消失，看不見顆粒，這就是<span class="highlight">溶解</span>。</li><li><strong>重量守恆</strong>：溶解後，重量不會變輕！</li></ul><h3>2. 加速溶解</h3><ul><li><strong>攪拌、加熱、磨碎</strong>。</li></ul><h3>3. 飽和與分離</h3><ul><li><strong>飽和</strong>：吃不下了！水再也溶不進去鹽巴。</li><li><strong>分離</strong>：利用<strong>蒸發</strong>（晒太陽、加熱）把水趕走，留下鹽結晶。</li></ul></div>`,
+            'solution2': `<div class="guide-content"><h3>1. 石蕊試紙</h3><p>口訣：<span class="highlight">酸紅鹼藍</span></p><ul><li><strong>酸性</strong>：變<span class="highlight">紅色</span>。</li><li><strong>鹼性</strong>：變<span class="highlight">藍色</span>。</li></ul><h3>2. 常見水溶液</h3><ul><li><strong>酸性</strong>：<span class="highlight">檸檬汁、白醋、汽水</span>。</li><li><strong>鹼性</strong>：<span class="highlight">小蘇打水、石灰水、氨水、肥皂水</span>。</li><li><strong>中性</strong>：<span class="highlight">食鹽水、糖水</span>。</li></ul></div>`,
+            'solution3': `<div class="guide-content"><h3>1. 導電性</h3><p>能導電的水溶液稱為<span class="highlight">電解質</span>。</p><ul><li><strong>容易導電</strong>：酸、鹼、鹽類（檸檬汁、食鹽水）。</li><li><strong>不易導電</strong>：糖水、酒精、純水。</li></ul><h3>2. 安全</h3><p><span class="highlight">手溼溼的絕對不能碰電器開關</span>。</p></div>`,
+            'force1': `<div class="guide-content"><h3>1. 力是什麼？</h3><p>力可以造成：移動、改變方向、變形、改變快慢。</p><h3>2. 接觸力 vs 超距力</h3><ul><li><strong>接觸力</strong>：推力、摩擦力、浮力、風力。</li><li><strong>超距力</strong>：<span class="highlight">地心引力、磁力、靜電力</span>。</li></ul></div>`,
+            'force2': `<div class="guide-content"><h3>1. 彈簧秤</h3><ul><li><strong>虎克定律</strong>：<span class="highlight">掛越重，彈簧伸長越長</span>（成正比）。</li><li><strong>單位</strong>：<span class="highlight">公克重 (gw)</span>。</li></ul><h3>2. 測量</h3><ul><li>使用前要先<span class="highlight">歸零</span>。</li></ul></div>`,
+            'force3': `<div class="guide-content"><h3>1. 摩擦力</h3><ul><li><strong>方向</strong>：跟物體運動方向<span class="highlight">相反</span>。</li></ul><h3>2. 影響因素</h3><ul><li><strong>接觸面</strong>：越<span class="highlight">粗糙</span>，摩擦力越大。</li><li><strong>重量</strong>：物體<span class="highlight">越重</span>，摩擦力越大。</li><li>跟接觸面積大小<strong>無關</strong>！</li></ul></div>`,
+            'economy1': `<div class="guide-content"><h3>1. 土地改革</h3><p>三七五減租 → 公地放領 → 耕者有其田。</p><h3>2. 工業起飛</h3><ul><li><strong>輕工業</strong>：紡織、食品。</li><li><strong>加工出口區</strong>：<span class="highlight">高雄、楠梓、臺中</span>。吸引外資，增加就業。</li></ul></div>`,
+            'economy2': `<div class="guide-content"><h3>1. 十大建設</h3><p>發展重工業（鋼鐵、造船）。交通建設：高速公路、鐵路電氣化。</p><h3>2. 科技島嶼</h3><ul><li><strong>科學園區</strong>：<span class="highlight">新竹</span>(竹科)。</li><li><strong>產業升級</strong>：從代工(OEM)轉向研發。</li></ul></div>`,
+            'society1': `<div class="guide-content"><h3>1. 生活圈</h3><p>滿足就業、就學、購物需求的範圍。</p><h3>2. 一日生活圈</h3><p>因為<span class="highlight">高鐵、捷運</span>通車，交通變快了。</p></div>`,
+            'society2': `<div class="guide-content"><h3>1. 都市化</h3><p>人口往都市集中。產生房價高、塞車、汙染等問題。</p><h3>2. 遷移原因</h3><ul><li><strong>拉力</strong>（都市好）：工作多、便利。</li><li><strong>推力</strong>（鄉村差）：工作少。</li></ul></div>`,
+            'society3': `<div class="guide-content"><h3>1. 人口問題</h3><p>少子化、高齡化。</p><h3>2. 永續發展</h3><p><span class="highlight">地方創生</span>（救鄉村）、綠建築。</p></div>`,
+            'history1': `<div class="guide-content"><h3>1. 舊石器 (長濱)</h3><p>打製石器、用火。</p><h3>2. 新石器 (大坌坑/卑南)</h3><p>磨製石器、陶器、定居農耕、石板棺。</p><h3>3. 金屬器 (十三行)</h3><p>煉鐵、交易(玻璃珠)。</p></div>`,
+            'history2': `<div class="guide-content"><h3>1. 原住民族</h3><ul><li><strong>平埔</strong>：漢化較早。</li><li><strong>高山</strong>：16族。</li></ul><h3>2. 文化</h3><p>阿美豐年祭、賽夏矮靈祭、百步蛇傳說(排灣/魯凱)。</p></div>`,
+            'history3': `<div class="guide-content"><h3>1. 荷蘭 (南台灣)</h3><p>熱蘭遮城(安平古堡)、貿易、新港文書(傳教)、黃牛。</p><h3>2. 西班牙 (北台灣)</h3><p>聖薩爾瓦多城(基隆)、紅毛城(淡水)。</p></div>`,
+            'history4': `<div class="guide-content"><h3>1. 鄭成功</h3><p>反清復明、趕走荷蘭人。</p><h3>2. 建設</h3><p>陳永華建<strong>孔廟</strong>(全臺首學)。軍隊<strong>屯田</strong>(左營、新營)。</p></div>`,
+            'history5': `<div class="guide-content"><h3>1. 清領初期</h3><p>施琅攻台。<strong>渡台禁令</strong>(禁攜眷)導致<strong>羅漢腳</strong>(單身男)多。</p><h3>2. 水利</h3><p>瑠公圳(台北)、八堡圳(彰化)、曹公圳(高雄)。</p></div>`
         };
 
+        // --- GAME DATA (QUESTS) ---
         const GAME_DATA = {
-            zones: [
+            worlds: [
                 {
-                    id: 'river', name: '蜿蜒溪流', fullName: '蜿蜒溪流 (河流地形)',
-                    description: '冒險的起點。水流湍急，充滿了各種大小的石頭。',
-                    icon: 'droplet', color: 'text-blue-500',
-                    mapPos: { top: '80%', left: '20%' },
-                    enemies: [
-                        {
-                            name: '上游巨石怪', hp: 30, dialogue: '我是來自上游的霸主！你知道我的特徵嗎？',
-                            questions: [
-                                { id: 'r1_1', q: '河流上游的河床通常具備什麼特徵？', options: ['堆滿細沙', '布滿有稜有角的巨石', '充滿圓潤的鵝卵石', '河道非常寬闊'], a: 1 },
-                                { id: 'r1_2', q: '太魯閣峽谷是由哪條溪流切割形成的？', options: ['濁水溪', '大甲溪', '立霧溪', '高屏溪'], a: 2 },
-                                { id: 'r1_3', q: '上游地勢陡峭，流速急，哪種作用力最強？', options: ['堆積作用', '搬運作用', '侵蝕作用', '風化作用'], a: 2 },
-                                { id: 'r1_4', q: '上游河谷常見的地形是什麼？', options: ['U型谷', 'V型谷', '寬廣平原', '三角洲'], a: 1 },
-                                { id: 'r1_5', q: '瀑布通常較容易出現在河流的哪一段？', options: ['上游', '中游', '下游', '出海口'], a: 0 },
-                                { id: 'r1_6', q: '河流上游的大石頭經過搬運碰撞，形狀會變得如何？', options: ['變大變尖', '變小變圓', '完全消失', '變成方形'], a: 1 },
-                                { id: 'r1_7', q: '基隆河上游常見的圓形凹洞「壺穴」，主要是什麼作用形成的？', options: ['風化作用', '河水夾帶石礫漩渦侵蝕', '地震', '火山爆發'], a: 1 },
-                                { id: 'r1_8', q: '上游河道通常比較？', options: ['寬闊', '狹窄', '平坦', '乾燥'], a: 1 },
-                                { id: 'r1_9', q: '我們在河流上游，通常「不容易」看到什麼？', options: ['巨石', '急流', '峽谷', '三角洲'], a: 3 },
-                                { id: 'r1_10', q: '如果坡度越陡，流水的什麼作用會越明顯？', options: ['堆積', '侵蝕與搬運', '蒸發', '光合'], a: 1 },
-                            ]
-                        },
-                        {
-                            name: '中游鵝卵石精', hp: 40, dialogue: '我在滾動中變得圓潤...',
-                            questions: [
-                                { id: 'r2_1', q: '河流中游常見的石頭形狀是？', options: ['有稜有角', '細粉狀', '光滑圓潤的鵝卵石', '巨大的岩塊'], a: 2 },
-                                { id: 'r2_2', q: '石頭在搬運過程中互相碰撞摩擦，體積變小變圓，這叫什麼？', options: ['磨蝕', '風化', '溶解', '沉澱'], a: 0 },
-                                { id: 'r2_3', q: '曲流的「凹岸」通常發生什麼作用？', options: ['堆積作用', '侵蝕作用', '光合作用', '蒸發作用'], a: 1 },
-                                { id: 'r2_4', q: '曲流的「凹岸」水流速度通常如何？', options: ['較快', '較慢', '靜止不動', '忽快忽慢'], a: 0 },
-                                { id: 'r2_5', q: '曲流的「凸岸」主要發生什麼作用？', options: ['侵蝕作用', '搬運作用', '堆積作用', '崩塌作用'], a: 2 },
-                                { id: 'r2_6', q: '如果要在河邊蓋房子，選在哪一岸比較安全（不會被侵蝕後退）？', options: ['凹岸', '凸岸', '河中央', '都會被淹沒'], a: 1 },
-                                { id: 'r2_7', q: '實驗證明，水流速度越快，能搬運的石頭？', options: ['越小', '越大', '越少', '一樣'], a: 1 },
-                                { id: 'r2_8', q: '牛軛湖通常是由哪種地形演變而來的？', options: ['瀑布', '曲流', '沙洲', '峽谷'], a: 1 },
-                                { id: 'r2_9', q: '當河流從山區進入平原，坡度變緩，會發生什麼現象？', options: ['形成扇狀堆積(沖積扇)', '形成大峽谷', '形成壺穴', '水流變快'], a: 0 },
-                                { id: 'r2_10', q: '中游河道的寬度通常介於？', options: ['最窄與最寬之間', '比下游寬', '比上游窄', '不一定'], a: 0 },
-                            ]
-                        },
-                        {
-                            name: '下游泥沙魔', hp: 50, dialogue: '我會緩慢地覆蓋一切...',
-                            questions: [
-                                { id: 'r3_1', q: '河流下游的流速通常如何？', options: ['最快', '中等', '緩慢', '忽快忽慢'], a: 2 },
-                                { id: 'r3_2', q: '在河流出海口，常見哪種地形？', options: ['峽谷', '瀑布', '三角洲', '壺穴'], a: 2 },
-                                { id: 'r3_3', q: '下游河床主要的堆積物是什麼？', options: ['巨石', '鵝卵石', '泥沙', '珊瑚礁'], a: 2 },
-                                { id: 'r3_4', q: '河流下游的河道寬度通常如何？', options: ['最窄', '最寬', '與上游一樣', '不一定'], a: 1 },
-                                { id: 'r3_5', q: '為什麼下游容易發生水災？', options: ['地勢低平排水慢', '石頭太多', '流速太快', '沒有植物'], a: 0 },
-                                { id: 'r3_6', q: '將泥沙沖刷到更遠的地方堆積，主要受什麼因素影響？', options: ['石頭顏色', '流速與坡度', '水的溫度', '魚的數量'], a: 1 },
-                                { id: 'r3_7', q: '在「土堆坡度與流水作用的關係」實驗中，緩坡代表河流的哪一段？', options: ['上游', '中下游', '瀑布', '源頭'], a: 1 },
-                                { id: 'r3_8', q: '下游的堆積作用明顯，是因為？', options: ['流速變快', '流速變慢', '水量變少', '沒有石頭'], a: 1 },
-                                { id: 'r3_9', q: '下列哪種景觀最不可能出現在下游？', options: ['寬廣的河面', '平坦的平原', '深邃的V型谷', '細小的沙粒'], a: 2 },
-                                { id: 'r3_10', q: '三角洲的形成主要是因為哪種作用？', options: ['侵蝕', '搬運', '堆積', '風化'], a: 2 },
-                            ]
-                        }
+                    id: 'world1',
+                    title: '第一世界：地質與磁場 (6上自然)',
+                    bg: 'from-slate-900 via-slate-800 to-black',
+                    zones: [
+                        { id: 'river', name: '蜿蜒溪流', icon: 'droplet', color: 'text-blue-500', mapPos: { top: '80%', left: '10%' }, enemies: [{ name: '上游巨石怪', hp: 30, dialogue: '大石頭滾啊滾！', questions: [
+                            { id: 'r1', q: '河流上游常見的地形是？', options: ['V型谷', '寬廣平原', '三角洲', '沙漠'], a: 0 },
+                            { id: 'r2', q: '上游石頭的特徵？', options: ['圓潤', '有稜有角', '細沙', '粉末'], a: 1 },
+                            { id: 'r3', q: '壺穴的成因？', options: ['風化', '漩渦侵蝕', '地震', '人為'], a: 1 },
+                            { id: 'r1_1', q: '河流上游的河床通常具備什麼特徵？', options: ['堆滿細沙', '布滿有稜有角的巨石', '充滿圓潤的鵝卵石', '河道非常寬闊'], a: 1 },
+                            { id: 'r1_2', q: '太魯閣峽谷是由哪條溪流切割形成的？', options: ['濁水溪', '大甲溪', '立霧溪', '高屏溪'], a: 2 },
+                            { id: 'r1_3', q: '上游地勢陡峭，流速急，哪種作用力最強？', options: ['堆積作用', '搬運作用', '侵蝕作用', '風化作用'], a: 2 },
+                            { id: 'r1_4', q: '上游河谷常見的地形是什麼？', options: ['U型谷', 'V型谷', '寬廣平原', '三角洲'], a: 1 },
+                            { id: 'r1_5', q: '瀑布通常較容易出現在河流的哪一段？', options: ['上游', '中游', '下游', '出海口'], a: 0 },
+                            { id: 'r1_6', q: '河流上游的大石頭經過搬運碰撞，形狀會變得如何？', options: ['變大變尖', '變小變圓', '完全消失', '變成方形'], a: 1 },
+                            { id: 'r1_7', q: '基隆河上游常見的圓形凹洞「壺穴」，主要是什麼作用形成的？', options: ['風化作用', '河水夾帶石礫漩渦侵蝕', '地震', '火山爆發'], a: 1 },
+                            { id: 'r1_8', q: '上游河道通常比較？', options: ['寬闊', '狹窄', '平坦', '乾燥'], a: 1 },
+                            { id: 'r1_9', q: '我們在河流上游，通常「不容易」看到什麼？', options: ['巨石', '急流', '峽谷', '三角洲'], a: 3 },
+                            { id: 'r1_10', q: '如果坡度越陡，流水的什麼作用會越明顯？', options: ['堆積', '侵蝕與搬運', '蒸發', '光合'], a: 1 },
+                            { id: 'r2_1', q: '河流中游常見的石頭形狀是？', options: ['有稜有角', '細粉狀', '光滑圓潤的鵝卵石', '巨大的岩塊'], a: 2 },
+                            { id: 'r2_2', q: '石頭在搬運過程中互相碰撞摩擦，體積變小變圓，這叫什麼？', options: ['磨蝕', '風化', '溶解', '沉澱'], a: 0 },
+                            { id: 'r2_3', q: '曲流的「凹岸」通常發生什麼作用？', options: ['堆積作用', '侵蝕作用', '光合作用', '蒸發作用'], a: 1 },
+                            { id: 'r2_4', q: '曲流的「凹岸」水流速度通常如何？', options: ['較快', '較慢', '靜止不動', '忽快忽慢'], a: 0 },
+                            { id: 'r2_5', q: '曲流的「凸岸」主要發生什麼作用？', options: ['侵蝕作用', '搬運作用', '堆積作用', '崩塌作用'], a: 2 },
+                            { id: 'r2_6', q: '如果要在河邊蓋房子，選在哪一岸比較安全（不會被侵蝕後退）？', options: ['凹岸', '凸岸', '河中央', '都會被淹沒'], a: 1 },
+                            { id: 'r2_7', q: '實驗證明，水流速度越快，能搬運的石頭？', options: ['越小', '越大', '越少', '一樣'], a: 1 },
+                            { id: 'r2_8', q: '牛軛湖通常是由哪種地形演變而來的？', options: ['瀑布', '曲流', '沙洲', '峽谷'], a: 1 },
+                            { id: 'r2_9', q: '當河流從山區進入平原，坡度變緩，會發生什麼現象？', options: ['形成扇狀堆積(沖積扇)', '形成大峽谷', '形成壺穴', '水流變快'], a: 0 },
+                            { id: 'r2_10', q: '中游河道的寬度通常介於？', options: ['最窄與最寬之間', '比下游寬', '比上游窄', '不一定'], a: 0 },
+                            { id: 'r3_1', q: '河流下游的流速通常如何？', options: ['最快', '中等', '緩慢', '忽快忽慢'], a: 2 },
+                            { id: 'r3_2', q: '在河流出海口，常見哪種地形？', options: ['峽谷', '瀑布', '三角洲', '壺穴'], a: 2 },
+                            { id: 'r3_3', q: '下游河床主要的堆積物是什麼？', options: ['巨石', '鵝卵石', '泥沙', '珊瑚礁'], a: 2 },
+                            { id: 'r3_4', q: '河流下游的河道寬度通常如何？', options: ['最窄', '最寬', '與上游一樣', '不一定'], a: 1 },
+                            { id: 'r3_5', q: '為什麼下游容易發生水災？', options: ['地勢低平排水慢', '石頭太多', '流速太快', '沒有植物'], a: 0 },
+                            { id: 'r3_6', q: '將泥沙沖刷到更遠的地方堆積，主要受什麼因素影響？', options: ['石頭顏色', '流速與坡度', '水的溫度', '魚的數量'], a: 1 },
+                            { id: 'r3_7', q: '在「土堆坡度」實驗中，緩坡代表河流的哪一段？', options: ['上游', '中下游', '瀑布', '源頭'], a: 1 },
+                            { id: 'r3_8', q: '下游的堆積作用明顯，是因為？', options: ['流速變快', '流速變慢', '水量變少', '沒有石頭'], a: 1 },
+                            { id: 'r3_9', q: '下列哪種景觀最不可能出現在下游？', options: ['寬廣的河面', '平坦的平原', '深邃的V型谷', '細小的沙粒'], a: 2 },
+                            { id: 'r3_10', q: '三角洲的形成主要是因為哪種作用？', options: ['侵蝕', '搬運', '堆積', '風化'], a: 2 },
+                        ]}] },
+                        { id: 'coast', name: '狂風海岸', icon: 'map', color: 'text-cyan-500', mapPos: { top: '65%', left: '20%' }, enemies: [{ name: '海蝕幽靈', hp: 40, dialogue: '聽聽海浪的聲音...', questions: [
+                            { id: 'c1', q: '女王頭是哪種作用形成？', options: ['海水堆積', '風化與侵蝕', '火山', '地震'], a: 1 },
+                            { id: 'c2', q: '哪個是海積地形？', options: ['海蝕柱', '豆腐岩', '沙灘', '海蝕洞'], a: 2 },
+                            { id: 'c1_1', q: '下列哪一個屬於「海蝕地形」？', options: ['沙灘', '沙洲', '海蝕拱門', '潟湖'], a: 2 },
+                            { id: 'c1_2', q: '野柳女王頭主要是受什麼作用形成的？', options: ['海水堆積', '風化與海水侵蝕', '河流搬運', '火山爆發'], a: 1 },
+                            { id: 'c1_3', q: '基隆和平島的「豆腐岩」是怎麼形成的？', options: ['人為切割', '海水沿著岩石節理侵蝕', '隕石撞擊', '河流沖刷'], a: 1 },
+                            { id: 'c1_4', q: '「海蝕洞」如果被打穿了，會變成什麼？', options: ['海蝕平臺', '海蝕溝', '海蝕拱門', '沙灘'], a: 2 },
+                            { id: 'c1_5', q: '北海岸的老梅綠石槽，其溝槽是什麼地形？', options: ['海蝕溝', '斷層', '火山口', '河流'], a: 0 },
+                            { id: 'c1_6', q: '單面山（如野柳）的形成原因與什麼有關？', options: ['岩層軟硬不同與傾斜', '人為堆疊', '地震隆起', '火山噴發'], a: 0 },
+                            { id: 'c1_7', q: '海蝕拱門頂部崩塌後，殘留的岩柱稱為？', options: ['海蝕柱', '海蝕洞', '海蝕溝', '消波塊'], a: 0 },
+                            { id: 'c1_8', q: '海蝕平台通常是在什麼時候露出水面？', options: ['漲潮', '退潮', '颱風天', '海嘯時'], a: 1 },
+                            { id: 'c1_9', q: '野柳女王頭的頸部越來越細，主要是什麼作用？', options: ['差異侵蝕與風化', '人為破壞', '地震搖晃', '植物生長'], a: 0 },
+                            { id: 'c1_10', q: '下列哪個地點以「蕈狀岩」聞名？', options: ['野柳', '七股', '墾丁沙灘', '清水斷崖'], a: 0 },
+                            { id: 'c1_11', q: '海水的哪種運動是造成海岸侵蝕的主要動力？', options: ['海浪', '洋流', '潮汐', '漩渦'], a: 0 },
+                            { id: 'c2_1', q: '金樽的「陸連島」是因為什麼作用形成的？', options: ['海水侵蝕', '海水堆積', '地殼下陷', '火山噴發'], a: 1 },
+                            { id: 'c2_2', q: '福隆海水浴場的沙灘屬於哪種地形？', options: ['海蝕地形', '海積地形', '火山地形', '冰河地形'], a: 1 },
+                            { id: 'c2_3', q: '臺南七股的「新浮崙汕」是什麼？', options: ['海蝕洞', '離岸沙洲', '海蝕平臺', '海蝕溝'], a: 1 },
+                            { id: 'c2_4', q: '沙洲通常是由什麼物質堆積而成？', options: ['巨大的岩石', '泥沙', '珊瑚礁', '貝殼'], a: 1 },
+                            { id: 'c2_5', q: '潟湖（如七股潟湖）通常位於什麼的內側？', options: ['沙洲', '懸崖', '深海', '高山'], a: 0 },
+                            { id: 'c2_6', q: '海積地形的主要動力來源是什麼？', options: ['風與海浪', '地震', '火山', '地心引力'], a: 0 },
+                            { id: 'c2_7', q: '桃園的「草漯沙丘」主要是由什麼力量搬運堆積的？', options: ['強勁的風', '河流', '冰川', '動物'], a: 0 },
+                            { id: 'c2_8', q: '下列何者不是海積地形？', options: ['沙灘', '沙嘴', '海蝕崖', '離岸沙洲'], a: 2 },
+                            { id: 'c2_9', q: '陸連島是連接了什麼與陸地？', options: ['離岸小島', '另一塊大陸', '船隻', '燈塔'], a: 0 },
+                            { id: 'c2_10', q: '想要去海邊玩沙堆城堡，應該去哪裡？', options: ['花蓮太魯閣', '野柳地質公園', '福隆海水浴場', '和平島'], a: 2 },
+                        ]}] },
+                        { id: 'rocks', name: '礦物王國', icon: 'hammer', color: 'text-gray-400', mapPos: { top: '50%', left: '30%' }, enemies: [{ name: '岩石巨人', hp: 50, dialogue: '我比鑽石還硬？才怪！', questions: [
+                            { id: 'ro1', q: '遇鹽酸會冒泡的礦物？', options: ['石英', '方解石', '滑石', '長石'], a: 1 },
+                            { id: 'ro2', q: '硬度最小的礦物？', options: ['滑石', '石膏', '方解石', '鑽石'], a: 0 },
+                            { id: 'ro1_1', q: '下列哪種礦物的硬度最小（最軟）？', options: ['石英', '方解石', '滑石', '金剛石'], a: 2 },
+                            { id: 'ro1_2', q: '我們可以用什麼簡單的方法測試礦物硬度？', options: ['用火燒', '互相刻劃', '泡水', '聽聲音'], a: 1 },
+                            { id: 'ro1_3', q: '石灰岩的主要成分是什麼礦物？', options: ['長石', '石英', '方解石', '黑雲母'], a: 2 },
+                            { id: 'ro1_4', q: '滴稀鹽酸會產生氣泡的是哪種礦物？', options: ['石英', '方解石', '硫磺', '滑石'], a: 1 },
+                            { id: 'ro1_5', q: '指甲可以刮出痕跡，代表該礦物硬度比指甲？', options: ['大', '小', '一樣', '無法比較'], a: 1 },
+                            { id: 'ro1_6', q: '常被用來做成爽身粉的是哪種礦物？', options: ['石墨', '硫磺', '滑石', '石膏'], a: 2 },
+                            { id: 'ro1_7', q: '具有特殊氣味，可用來製作火藥的是？', options: ['硫磺', '石英', '雲母', '長石'], a: 0 },
+                            { id: 'ro1_8', q: '礦物條痕的顏色是指礦物什麼狀態下的顏色？', options: ['粉末', '結晶', '燃燒', '溶化'], a: 0 },
+                            { id: 'ro1_9', q: '石英常被用來製作什麼？', options: ['玻璃與飾品', '水泥', '鉛筆芯', '爽身粉'], a: 0 },
+                            { id: 'ro1_10', q: '雲母的特性是可以剝成？', options: ['薄片狀', '粉末狀', '球狀', '液體狀'], a: 0 },
+                            { id: 'ro1_11', q: '如果在野外撿到一塊石頭，想分辨是否為石灰岩，可以滴？', options: ['水', '稀鹽酸', '醬油', '沙拉油'], a: 1 },
+                            { id: 'ro1_12', q: '下列哪種礦物硬度最高？', options: ['滑石', '石膏', '方解石', '石英'], a: 3 },
+                            { id: 'ro2_1', q: '花崗岩主要由長石、石英和什麼組成？', options: ['滑石', '硫磺', '黑雲母', '石膏'], a: 2 },
+                            { id: 'ro2_2', q: '哪種岩石是用來製造水泥的主要原料？', options: ['安山岩', '花崗岩', '石灰岩', '玄武岩'], a: 2 },
+                            { id: 'ro2_3', q: '鉛筆筆芯是由什麼製成的？', options: ['石墨+黏土', '煤炭', '黑曜石', '鉛'], a: 0 },
+                            { id: 'ro2_4', q: '大理岩是由什麼岩石變質而成的？', options: ['頁岩', '石灰岩', '花崗岩', '砂岩'], a: 1 },
+                            { id: 'ro2_5', q: '安山岩常見於哪種地形？', options: ['火山地形', '沙漠地形', '冰河地形', '平原地形'], a: 0 },
+                            { id: 'ro2_6', q: '澎湖著名的柱狀玄武岩屬於哪一類岩石？', options: ['沉積岩', '火成岩', '變質岩', '化石'], a: 1 },
+                            { id: 'ro2_7', q: '哪種岩石常用來做廟宇的龍柱或石獅？', options: ['頁岩', '安山岩', '石灰岩', '板岩'], a: 1 },
+                            { id: 'ro2_8', q: '頁岩經過高溫高壓變質後，會形成？', options: ['板岩', '大理岩', '花崗岩', '玄武岩'], a: 0 },
+                            { id: 'ro2_9', q: '沉積岩通常具有什麼構造？', options: ['層理', '氣孔', '片狀', '柱狀'], a: 0 },
+                            { id: 'ro2_10', q: '下列何者屬於火成岩？', options: ['石灰岩', '砂岩', '花崗岩', '大理岩'], a: 2 },
+                            { id: 'ro2_11', q: '哪種岩石表面常有氣孔（因為岩漿冷卻氣體逸出）？', options: ['花崗岩', '玄武岩', '大理岩', '石灰岩'], a: 1 },
+                            { id: 'ro2_12', q: '化石最容易在哪種岩石中發現？', options: ['沉積岩', '火成岩', '變質岩', '隕石'], a: 0 },
+                            { id: 'ro2_13', q: '岩石風化後，最終會變成？', options: ['土壤', '化石', '寶石', '金屬'], a: 0 },
+                        ]}] },
+                        { id: 'disaster', name: '震動山脈', icon: 'alert-triangle', color: 'text-red-500', mapPos: { top: '35%', left: '40%' }, enemies: [{ name: '震波龍', hp: 60, dialogue: '大地在顫抖！', questions: [
+                            { id: 'd1', q: '地震防災口訣？', options: ['快跑尖叫', '趴下掩護穩住', '打卡拍照', '搭電梯'], a: 1 },
+                            { id: 'd2', q: '芮氏規模代表？', options: ['搖晃程度', '釋放能量', '破壞程度', '深度'], a: 1 },
+                            { id: 'd1_1', q: '地震發生時，保護自己的口訣是？', options: ['快跑、尖叫、大哭', '趴下、掩護、穩住', '打卡、拍照、上傳', '搭電梯、跳樓、閉眼'], a: 1 },
+                            { id: 'd1_2', q: '地震報告中，代表「地震釋放能量大小」的是？', options: ['震度', '震源', '芮氏規模', '震央'], a: 2 },
+                            { id: 'd1_3', q: '緊急避難包內「不需要」放什麼？', options: ['乾糧與水', '手電筒', '電動玩具', '哨子'], a: 2 },
+                            { id: 'd1_4', q: '震源垂直向上與地表的交點稱為？', options: ['震央', '斷層', '震度', '地震帶'], a: 0 },
+                            { id: 'd1_5', q: '地震時，為什麼不能搭電梯？', options: ['電梯會暈', '可能停電受困', '電梯太慢', '怕遇到鄰居'], a: 1 },
+                            { id: 'd1_6', q: '「震度」是用來表示什麼？', options: ['地震釋放的能量', '地表搖晃的程度', '地震發生的深度', '斷層的長度'], a: 1 },
+                            { id: 'd1_7', q: '下列何者不是地震可能引發的災害？', options: ['海嘯', '山崩', '土壤液化', '颱風'], a: 3 },
+                            { id: 'd1_8', q: '地震報告中的「各地最大震度」，同一場地震各地會？', options: ['都一樣', '不一樣', '都是 0', '都是 7'], a: 1 },
+                            { id: 'd1_9', q: '平時應該固定好家具，是為了預防？', options: ['小偷', '地震搖晃傾倒', '風吹走', '發霉'], a: 1 },
+                            { id: 'd1_10', q: '芮氏規模 6.0 和 4.0 的地震，哪一個釋放能量較大？', options: ['6.0', '4.0', '一樣大', '無法比較'], a: 0 },
+                            { id: 'd1_11', q: '地震發生時在室內，應該優先躲在哪裡？', options: ['堅固桌子下', '窗戶旁', '陽台', '衣櫃裡'], a: 0 },
+                            { id: 'd1_12', q: '「家庭防災卡」的主要用途是？', options: ['紀錄零用錢', '約定災後集合地點與聯絡方式', '紀錄考試成績', '收集貼紙'], a: 1 },
+                            { id: 'd1_13', q: '高雄月世界的「惡地」地形，主要是哪種岩石構成？', options: ['泥岩', '花崗岩', '玄武岩', '大理岩'], a: 0 },
+                            { id: 'd1_14', q: '地震深度越淺，通常對地表的破壞力？', options: ['越小', '越大', '沒影響', '變成龍捲風'], a: 1 },
+                            { id: 'd1_15', q: '海嘯通常是由什麼原因引發的？', options: ['海底地震或火山爆發', '強風', '大雨', '潮汐'], a: 0 },
+                            { id: 'd1_16', q: '地震報告中，震度數字越大代表？', options: ['搖晃越劇烈', '搖晃越輕微', '地震越深', '地震越久'], a: 0 },
+                            { id: 'd1_17', q: '下列哪種行為在地震時是「錯誤」的？', options: ['關閉火源', '打開大門', '搭電梯逃生', '保護頭部'], a: 2 },
+                            { id: 'd1_18', q: '地質公園（如野柳、燕巢）設立的主要目的是？', options: ['蓋遊樂園', '保護特殊地質景觀', '開採礦石', '蓋大樓'], a: 1 },
+                        ]}] },
+                        { id: 'magnet1', name: '迷霧磁林', icon: 'compass', color: 'text-purple-400', mapPos: { top: '35%', left: '60%' }, enemies: [{ name: '地磁守護者', hp: 50, dialogue: '南北不分就別想過！', questions: [
+                            { id: 'm1', q: '指北針N極指向北方是受誰吸引？', options: ['地磁N極', '地磁S極', '太陽', '月亮'], a: 1 },
+                            { id: 'm2', q: '磁鐵特性？', options: ['同極相吸', '異極相斥', '同極相斥', '無磁極'], a: 2 },
+                            { id: 'm1_1', q: '指北針的指北端(N極)會指向北方，是因為受到地磁哪個極的吸引？', options: ['地磁N極', '地磁S極', '地理北極', '地理南極'], a: 1 },
+                            { id: 'm1_2', q: '磁鐵具有什麼特性？', options: ['同極相吸，異極相斥', '同極相斥，異極相吸', '只有N極', '只有S極'], a: 1 },
+                            { id: 'm1_3', q: '懸吊的長條形磁鐵靜止時，N極會指向哪個方向？', options: ['東方', '西方', '南方', '北方'], a: 3 },
+                            { id: 'm1_4', q: '下列哪種物品會影響指北針的指向？', options: ['木尺', '塑膠墊板', '鐵尺', '玻璃杯'], a: 2 },
+                            { id: 'm1_5', q: '地磁的S極大約位於地球的哪裡？', options: ['地理北極附近', '地理南極附近', '赤道', '台灣'], a: 0 },
+                            { id: 'm1_6', q: '將磁鐵折斷後，每一小段磁鐵會有幾個磁極？', options: ['只有N極', '只有S極', '同時有N極和S極', '沒有磁極'], a: 2 },
+                            { id: 'm1_7', q: '磁鐵的磁力在哪个部位最強？', options: ['中間', '兩端(磁極)', '整根一樣強', '不一定'], a: 1 },
+                            { id: 'm1_8', q: '指北針的指針本身其實就是一個？', options: ['小磁鐵', '銅針', '塑膠針', '木針'], a: 0 },
+                            { id: 'm1_9', q: '若將磁鐵N極靠近指北針的指北端(N)，會發生什麼事？', options: ['互相吸引', '互相排斥', '沒反應', '指針變色'], a: 1 },
+                            { id: 'm1_10', q: '磁力線是真實存在的線嗎？', options: ['是，肉眼可見', '不是，是假想的線', '是，可以用手摸到', '是，像繩子一樣'], a: 1 },
+                        ]}] },
+                        { id: 'magnet2', name: '雷電遺跡', icon: 'zap', color: 'text-yellow-400', mapPos: { top: '55%', left: '70%' }, enemies: [{ name: '線圈魔像', hp: 60, dialogue: '滋滋滋...', questions: [
+                            { id: 'm3', q: '增加電磁鐵磁力的方法？', options: ['減少電池', '增加線圈圈數', '放入木棒', '剪短電線'], a: 1 },
+                            { id: 'm4', q: '發現電流磁效應的是？', options: ['牛頓', '奧斯特', '愛迪生', '特斯拉'], a: 1 },
+                            { id: 'm2_1', q: '發現通電的電線會產生磁場的科學家是？', options: ['牛頓', '愛迪生', '奧斯特', '愛因斯坦'], a: 2 },
+                            { id: 'm2_2', q: '要增強電磁鐵的磁力，下列哪種方法無效？', options: ['增加串聯電池數量', '增加線圈纏繞圈數', '線圈內放入鐵棒', '改變電流方向'], a: 3 },
+                            { id: 'm2_3', q: '通電的電線放在指北針「上方」和「下方」，指針偏轉方向會？', options: ['相同', '相反', '不一定', '不會偏轉'], a: 1 },
+                            { id: 'm2_4', q: '電磁鐵與一般永久磁鐵最大的不同是？', options: ['電磁鐵的磁極可以改變', '電磁鐵不能吸鐵', '電磁鐵沒有N/S極', '電磁鐵磁力不能改變'], a: 0 },
+                            { id: 'm2_5', q: '在通電線圈中放入什麼材質的棒子，可以大幅增強磁力？', options: ['木棒', '塑膠棒', '鋁棒', '鐵棒'], a: 3 },
+                            { id: 'm2_6', q: '若改變電磁鐵的電流方向(電池反接)，會發生什麼事？', options: ['磁力消失', '磁力變弱', '磁極(N/S)交換', '爆炸'], a: 2 },
+                            { id: 'm2_7', q: '漆包線表面的漆有什麼作用？', options: ['美觀', '絕緣', '導電', '增加重量'], a: 1 },
+                            { id: 'm2_8', q: '製作電磁鐵時，漆包線兩端的漆需要如何處理？', options: ['不用處理', '全部磨除', '只磨一半', '塗上更多漆'], a: 1 },
+                            { id: 'm2_9', q: '電池串聯數量越多，電磁鐵的磁力通常會？', options: ['越強', '越弱', '不變', '消失'], a: 0 },
+                            { id: 'm2_10', q: '指北針靜止時指向北方，若將通電電線平行放在指北針上方，指針會？', options: ['指向東方', '指向西方', '發生偏轉', '不動'], a: 2 },
+                        ]}] },
+                        { id: 'magnet3', name: '磁浮未來城', icon: 'cpu', color: 'text-pink-400', mapPos: { top: '80%', left: '80%' }, enemies: [{ name: '機甲博士', hp: 70, dialogue: '科技的力量！', questions: [
+                            { id: 'm5', q: '磁浮列車原理？', options: ['摩擦生熱', '磁極排斥或吸引', '風力推動', '水力'], a: 1 },
+                            { id: 'm6', q: '馬達內部包含？', options: ['只有磁鐵', '只有線圈', '磁鐵與電磁鐵', '彈簧'], a: 2 },
+                            { id: 'm3_1', q: '磁浮列車是利用磁鐵的什麼特性浮在軌道上？', options: ['同極相吸', '異極相斥', '同極相斥或異極相吸', '地心引力'], a: 2 },
+                            { id: 'm3_2', q: '下列哪種家電用品內部通常「沒有」馬達(電動機)？', options: ['電風扇', '洗衣機', '吹風機', '電烤箱'], a: 3 },
+                            { id: 'm3_3', q: '馬達(電動機)運作時，主要是將電能轉換成什麼能？', options: ['動能', '光能', '熱能', '化學能'], a: 0 },
+                            { id: 'm3_4', q: '下列關於電磁波的敘述，何者正確？', options: ['對人體完全無害', '只有手機有電磁波', '使用電器應保持適當距離', '電磁波看得到'], a: 2 },
+                            { id: 'm3_5', q: '電話聽筒內含有什麼裝置，能將電流訊號轉為聲音？', options: ['電磁鐵', '發電機', '電池', '馬達'], a: 0 },
+                            { id: 'm3_6', q: '磁浮列車行駛時不接觸軌道，主要優點是什麼？', options: ['摩擦力小、速度快', '可以飛起來', '比較便宜', '不用電'], a: 0 },
+                            { id: 'm3_7', q: '電磁鐵起重機利用什麼原理吸起廢鐵？', options: ['靜電', '通電產生磁性', '魔術', '膠水'], a: 1 },
+                            { id: 'm3_8', q: '使用微波爐時，應該怎麼做比較安全？', options: ['眼睛貼近觀察', '保持距離', '放入金屬碗', '門打開使用'], a: 1 },
+                            { id: 'm3_9', q: '下列哪種物品運作時會產生電磁波？', options: ['吹風機', '書本', '木桌', '玻璃杯'], a: 0 },
+                            { id: 'm3_10', q: '想減少手機電磁波影響，通話時可以使用？', options: ['擴音或耳機', '貼在耳朵上', '用鋁箔紙包頭', '躲在地下室'], a: 0 },
+                        ]}] },
+                        { id: 'boss1', name: '魔王關：地心試煉', icon: 'skull', color: 'text-purple-600', mapPos: { top: '55%', left: '50%' }, enemies: [{ name: '磁力龍王', hp: 500, dialogue: '吾乃地心之主，接受最終試煉吧！', questions: [] }] }
                     ]
                 },
                 {
-                    id: 'coast', name: '狂風海岸', fullName: '狂風海岸 (海岸地形)',
-                    description: '順流而下，強風與海浪不斷拍打著岩石與沙灘。',
-                    icon: 'map', color: 'text-cyan-600',
-                    mapPos: { top: '50%', left: '40%' },
-                    enemies: [
-                        {
-                            name: '海蝕幽靈', hp: 40, dialogue: '聽聽海浪拍打的聲音...',
-                            questions: [
-                                { id: 'c1_1', q: '下列哪一個屬於「海蝕地形」？', options: ['沙灘', '沙洲', '海蝕拱門', '潟湖'], a: 2 },
-                                { id: 'c1_2', q: '野柳女王頭主要是受什麼作用形成的？', options: ['海水堆積', '風化與海水侵蝕', '河流搬運', '火山爆發'], a: 1 },
-                                { id: 'c1_3', q: '基隆和平島的「豆腐岩」是怎麼形成的？', options: ['人為切割', '海水沿著岩石節理侵蝕', '隕石撞擊', '河流沖刷'], a: 1 },
-                                { id: 'c1_4', q: '「海蝕洞」如果被打穿了，會變成什麼？', options: ['海蝕平臺', '海蝕溝', '海蝕拱門', '沙灘'], a: 2 },
-                                { id: 'c1_5', q: '北海岸的老梅綠石槽，其溝槽是什麼地形？', options: ['海蝕溝', '斷層', '火山口', '河流'], a: 0 },
-                                { id: 'c1_6', q: '單面山（如野柳）的形成原因與什麼有關？', options: ['岩層軟硬不同與傾斜', '人為堆疊', '地震隆起', '火山噴發'], a: 0 },
-                                { id: 'c1_7', q: '海蝕拱門頂部崩塌後，殘留的岩柱稱為？', options: ['海蝕柱', '海蝕洞', '海蝕溝', '消波塊'], a: 0 },
-                                { id: 'c1_8', q: '海蝕平台通常是在什麼時候露出水面？', options: ['漲潮', '退潮', '颱風天', '海嘯時'], a: 1 },
-                                { id: 'c1_9', q: '野柳女王頭的頸部越來越細，主要是什麼作用？', options: ['差異侵蝕與風化', '人為破壞', '地震搖晃', '植物生長'], a: 0 },
-                                { id: 'c1_10', q: '下列哪個地點以「蕈狀岩」聞名？', options: ['野柳', '七股', '墾丁沙灘', '清水斷崖'], a: 0 },
-                                { id: 'c1_11', q: '海水的哪種運動是造成海岸侵蝕的主要動力？', options: ['海浪', '洋流', '潮汐', '漩渦'], a: 0 },
-                            ]
-                        },
-                        {
-                            name: '堆積沙怪', hp: 50, dialogue: '我連結了島嶼與陸地...',
-                            questions: [
-                                { id: 'c2_1', q: '金樽的「陸連島」是因為什麼作用形成的？', options: ['海水侵蝕', '海水堆積', '地殼下陷', '火山噴發'], a: 1 },
-                                { id: 'c2_2', q: '福隆海水浴場的沙灘屬於哪種地形？', options: ['海蝕地形', '海積地形', '火山地形', '冰河地形'], a: 1 },
-                                { id: 'c2_3', q: '臺南七股的「新浮崙汕」是什麼？', options: ['海蝕洞', '離岸沙洲', '海蝕平臺', '海蝕溝'], a: 1 },
-                                { id: 'c2_4', q: '沙洲通常是由什麼物質堆積而成？', options: ['巨大的岩石', '泥沙', '珊瑚礁', '貝殼'], a: 1 },
-                                { id: 'c2_5', q: '潟湖（如七股潟湖）通常位於什麼的內側？', options: ['沙洲', '懸崖', '深海', '高山'], a: 0 },
-                                { id: 'c2_6', q: '海積地形的主要動力來源是什麼？', options: ['風與海浪', '地震', '火山', '地心引力'], a: 0 },
-                                { id: 'c2_7', q: '桃園的「草漯沙丘」主要是由什麼力量搬運堆積的？', options: ['強勁的風', '河流', '冰川', '動物'], a: 0 },
-                                { id: 'c2_8', q: '下列何者不是海積地形？', options: ['沙灘', '沙嘴', '海蝕崖', '離岸沙洲'], a: 2 },
-                                { id: 'c2_9', q: '陸連島是連接了什麼與陸地？', options: ['離岸小島', '另一塊大陸', '船隻', '燈塔'], a: 0 },
-                                { id: 'c2_10', q: '想要去海邊玩沙堆城堡，應該去哪裡？', options: ['花蓮太魯閣', '野柳地質公園', '福隆海水浴場', '和平島'], a: 2 },
-                            ]
-                        }
+                    id: 'world2',
+                    title: '第二世界：水鍊金與力場 (5上自然)',
+                    bg: 'from-indigo-900 via-purple-900 to-black',
+                    zones: [
+                        { id: 'solution1', name: '神秘溶洞', icon: 'flask-conical', color: 'text-blue-300', mapPos: { top: '80%', left: '20%' }, enemies: [{ name: '結晶史萊姆', hp: 35, dialogue: '我快要飽和析出了...', questions: [
+                            { id: 's1_1', q: '下列何種方法可加快食鹽在水中的溶解速度？', options: ['放冰箱', '磨成粉並攪拌', '靜置不動', '加冰塊'], a: 1 },
+                            { id: 's1_2', q: '物質溶解在水中後，總重量會？', options: ['變輕', '變重', '不變', '消失'], a: 2 },
+                            { id: 's1_3', q: '想要從食鹽水中取回食鹽，可以用什麼方法？', options: ['過濾', '蒸發水分(日晒)', '沉澱', '磁鐵吸'], a: 1 },
+                            { id: 's1_4', q: '當水中無法再溶解更多食鹽時，稱為？', options: ['飽和溶液', '稀溶液', '混濁液', '純水'], a: 0 },
+                            { id: 's1_5', q: '食鹽溶解在水中，顆粒會？', options: ['變大', '肉眼看不見', '變成黑色', '浮在水面'], a: 1 }
+                        ]}] },
+                        { id: 'solution2', name: '酸鹼實驗室', icon: 'test-tube', color: 'text-green-400', mapPos: { top: '60%', left: '30%' }, enemies: [{ name: '石蕊試劑怪', hp: 45, dialogue: '我是紅是藍，由你決定！', questions: [
+                            { id: 's2_1', q: '紅色石蕊試紙變藍色，代表水溶液是？', options: ['酸性', '中性', '鹼性', '油性'], a: 2 },
+                            { id: 's2_2', q: '下列哪種水溶液是酸性的？', options: ['小蘇打水', '石灰水', '白醋', '糖水'], a: 2 },
+                            { id: 's2_3', q: '紫色高麗菜汁滴入鹼性溶液會變成？', options: ['紅色系', '紫色系', '藍綠色系', '無色'], a: 2 },
+                            { id: 's2_4', q: '被蚊蟲叮咬(酸性)塗抹氨水(鹼性)止癢，是利用什麼原理？', options: ['溶解', '酸鹼中和', '蒸發', '過濾'], a: 1 },
+                            { id: 's2_5', q: '許多清潔劑摸起來滑滑的，通常是？', options: ['酸性', '鹼性', '中性', '磁性'], a: 1 }
+                        ]}] },
+                        { id: 'solution3', name: '導電光廊', icon: 'lightbulb', color: 'text-yellow-300', mapPos: { top: '40%', left: '40%' }, enemies: [{ name: '電解質幽靈', hp: 50, dialogue: '小心觸電！', questions: [
+                            { id: 's3_1', q: '下列哪種水溶液「不易」導電？', options: ['食鹽水', '檸檬酸水', '純糖水', '小蘇打水'], a: 2 },
+                            { id: 's3_2', q: '測試水溶液導電性時，LED燈發亮代表？', options: ['溶液會導電', '電池沒電', '燈泡壞了', '溶液是酸性'], a: 0 },
+                            { id: 's3_3', q: '手潮濕時去觸摸電器開關很危險，因為？', options: ['水會導電', '手會滑', '開關會壞', '會停電'], a: 0 },
+                            { id: 's3_4', q: '大部分的酸性、鹼性水溶液是否導電？', options: ['大多會導電', '完全不導電', '只有酸性導電', '只有鹼性導電'], a: 0 },
+                            { id: 's3_5', q: '純水(蒸餾水)的導電性如何？', options: ['極佳', '極差(不易導電)', '比食鹽水好', '會爆炸'], a: 1 }
+                        ]}] },
+                        { id: 'force1', name: '重力荒野', icon: 'arrow-down', color: 'text-orange-500', mapPos: { top: '30%', left: '60%' }, enemies: [{ name: '引力巨獸', hp: 55, dialogue: '一切終將落下！', questions: [
+                            { id: 'f1_1', q: '樹葉往下掉落，主要是受到什麼力？', options: ['風力', '地心引力(重力)', '浮力', '磁力'], a: 1 },
+                            { id: 'f1_2', q: '下列哪種力屬於「超距力」？', options: ['推力', '摩擦力', '磁力', '拉力'], a: 2 },
+                            { id: 'f1_3', q: '力的作用不包含下列哪項？', options: ['讓物體移動', '讓物體變形', '改變運動方向', '改變物體顏色'], a: 3 },
+                            { id: 'f1_4', q: '物體受力越大，運動速度通常會？', options: ['越快', '越慢', '不變', '停止'], a: 0 },
+                            { id: 'f1_5', q: '拔河比賽繩子靜止不動，代表？', options: ['沒人用力', '雙方受力平衡', '繩子斷了', '只有一邊用力'], a: 1 }
+                        ]}] },
+                        { id: 'force2', name: '測量高塔', icon: 'scale', color: 'text-teal-400', mapPos: { top: '50%', left: '75%' }, enemies: [{ name: '精準機關人', hp: 60, dialogue: '你的力量有多少斤兩？', questions: [
+                            { id: 'f2_1', q: '測量力的大小的常用工具是？', options: ['直尺', '量角器', '彈簧秤', '溫度計'], a: 2 },
+                            { id: 'f2_2', q: '在彈性限度內，掛的砝碼越重，彈簧會？', options: ['越短', '越長', '不變', '斷掉'], a: 1 },
+                            { id: 'f2_3', q: '力的常用單位是？', options: ['公分(cm)', '公升(L)', '公克重(gw)', '度(C)'], a: 2 },
+                            { id: 'f2_4', q: '使用彈簧秤前，最重要的步驟是？', options: ['歸零', '加熱', '泡水', '塗油'], a: 0 },
+                            { id: 'f2_5', q: '彈簧受力超過「彈性限度」會怎樣？', options: ['彈力更強', '無法恢復原狀', '變成磁鐵', '消失'], a: 1 }
+                        ]}] },
+                        { id: 'force3', name: '摩擦峽谷', icon: 'move', color: 'text-rose-500', mapPos: { top: '80%', left: '85%' }, enemies: [{ name: '阻力岩怪', hp: 70, dialogue: '想前進？先過我這關！', questions: [
+                            { id: 'f3_1', q: '摩擦力的方向通常與物體運動方向？', options: ['相同', '相反', '垂直', '無關'], a: 1 },
+                            { id: 'f3_2', q: '下列何者可以「減少」摩擦力？', options: ['加裝輪子', '鞋底紋路', '路面鋪柏油', '加重重量'], a: 0 },
+                            { id: 'f3_3', q: '接觸面越粗糙，摩擦力會？', options: ['越大', '越小', '不變', '消失'], a: 0 },
+                            { id: 'f3_4', q: '下列何者是摩擦力的優點(應用)？', options: ['鞋子磨損', '輪胎變平', '走路不滑倒', '機器發熱'], a: 2 },
+                            { id: 'f3_5', q: '物體越重，推動它時的摩擦力通常？', options: ['越大', '越小', '不變', '變零'], a: 0 }
+                        ]}] },
+                        { id: 'boss2', name: '魔王關：真理聖殿', icon: 'skull', color: 'text-purple-600', mapPos: { top: '50%', left: '50%' }, enemies: [{ name: '真理賢者', hp: 500, dialogue: '水與力的奧義，你真的參透了嗎？', questions: [] }] }
                     ]
                 },
                 {
-                    id: 'rocks', name: '礦物王國', fullName: '礦物王國 (岩石與礦物)',
-                    description: '深入地底，這裡閃耀著奇異的光芒。',
-                    icon: 'hammer', color: 'text-gray-700',
-                    mapPos: { top: '60%', left: '70%' },
-                    enemies: [
-                        {
-                            name: '礦物鑑識官', hp: 45, dialogue: '只有最硬的礦物才能通過！',
-                            questions: [
-                                { id: 'ro1_1', q: '下列哪種礦物的硬度最小（最軟）？', options: ['石英', '方解石', '滑石', '金剛石'], a: 2 },
-                                { id: 'ro1_2', q: '我們可以用什麼簡單的方法測試礦物硬度？', options: ['用火燒', '互相刻劃', '泡水', '聽聲音'], a: 1 },
-                                { id: 'ro1_3', q: '石灰岩的主要成分是什麼礦物？', options: ['長石', '石英', '方解石', '黑雲母'], a: 2 },
-                                { id: 'ro1_4', q: '滴稀鹽酸會產生氣泡的是哪種礦物？', options: ['石英', '方解石', '硫磺', '滑石'], a: 1 },
-                                { id: 'ro1_5', q: '指甲可以刮出痕跡，代表該礦物硬度比指甲？', options: ['大', '小', '一樣', '無法比較'], a: 1 },
-                                { id: 'ro1_6', q: '常被用來做成爽身粉的是哪種礦物？', options: ['石墨', '硫磺', '滑石', '石膏'], a: 2 },
-                                { id: 'ro1_7', q: '具有特殊氣味，可用來製作火藥的是？', options: ['硫磺', '石英', '雲母', '長石'], a: 0 },
-                                { id: 'ro1_8', q: '礦物條痕的顏色是指礦物什麼狀態下的顏色？', options: ['粉末', '結晶', '燃燒', '溶化'], a: 0 },
-                                { id: 'ro1_9', q: '石英常被用來製作什麼？', options: ['玻璃與飾品', '水泥', '鉛筆芯', '爽身粉'], a: 0 },
-                                { id: 'ro1_10', q: '雲母的特性是可以剝成？', options: ['薄片狀', '粉末狀', '球狀', '液體狀'], a: 0 },
-                                { id: 'ro1_11', q: '如果在野外撿到一塊石頭，想分辨是否為石灰岩，可以滴？', options: ['水', '稀鹽酸', '醬油', '沙拉油'], a: 1 },
-                                { id: 'ro1_12', q: '下列哪種礦物硬度最高？', options: ['滑石', '石膏', '方解石', '石英'], a: 3 },
-                            ]
-                        },
-                        {
-                            name: '岩石巨人', hp: 60, dialogue: '我是由高溫與高壓鍛造而成的！',
-                            questions: [
-                                { id: 'ro2_1', q: '花崗岩主要由長石、石英和什麼組成？', options: ['滑石', '硫磺', '黑雲母', '石膏'], a: 2 },
-                                { id: 'ro2_2', q: '哪種岩石是用來製造水泥的主要原料？', options: ['安山岩', '花崗岩', '石灰岩', '玄武岩'], a: 2 },
-                                { id: 'ro2_3', q: '鉛筆筆芯是由什麼製成的？', options: ['石墨+黏土', '煤炭', '黑曜石', '鉛'], a: 0 },
-                                { id: 'ro2_4', q: '大理岩是由什麼岩石變質而成的？', options: ['頁岩', '石灰岩', '花崗岩', '砂岩'], a: 1 },
-                                { id: 'ro2_5', q: '安山岩常見於哪種地形？', options: ['火山地形', '沙漠地形', '冰河地形', '平原地形'], a: 0 },
-                                { id: 'ro2_6', q: '澎湖著名的柱狀玄武岩屬於哪一類岩石？', options: ['沉積岩', '火成岩', '變質岩', '化石'], a: 1 },
-                                { id: 'ro2_7', q: '哪種岩石常用來做廟宇的龍柱或石獅？', options: ['頁岩', '安山岩', '石灰岩', '板岩'], a: 1 },
-                                { id: 'ro2_8', q: '頁岩經過高溫高壓變質後，會形成？', options: ['板岩', '大理岩', '花崗岩', '玄武岩'], a: 0 },
-                                { id: 'ro2_9', q: '沉積岩通常具有什麼構造？', options: ['層理', '氣孔', '片狀', '柱狀'], a: 0 },
-                                { id: 'ro2_10', q: '下列何者屬於火成岩？', options: ['石灰岩', '砂岩', '花崗岩', '大理岩'], a: 2 },
-                                { id: 'ro2_11', q: '哪種岩石表面常有氣孔（因為岩漿冷卻氣體逸出）？', options: ['花崗岩', '玄武岩', '大理岩', '石灰岩'], a: 1 },
-                                { id: 'ro2_12', q: '化石最容易在哪種岩石中發現？', options: ['沉積岩', '火成岩', '變質岩', '隕石'], a: 0 },
-                                { id: 'ro2_13', q: '岩石風化後，最終會變成？', options: ['土壤', '化石', '寶石', '金屬'], a: 0 },
-                            ]
-                        }
+                    id: 'world3',
+                    title: '第三世界：社會與變遷 (6上社會)',
+                    bg: 'from-amber-900 via-stone-800 to-black',
+                    zones: [
+                        { id: 'economy1', name: '起飛平原', icon: 'wheat', color: 'text-amber-500', mapPos: { top: '80%', left: '15%' }, enemies: [{ name: '土地改革者', hp: 40, dialogue: '耕者有其田！', questions: [
+                            { id: 'e1_1', q: '政府為改善農民生活，實施「耕者有其田」政策，地主將資金轉投資什麼？', options: ['農業', '工商業', '漁業', '林業'], a: 1 },
+                            { id: 'e1_2', q: '民國40年代，台灣主要發展什麼工業？', options: ['高科技工業', '重工業', '民生輕工業(紡織/食品)', '航太工業'], a: 2 },
+                            { id: 'e1_3', q: '設立「加工出口區」的主要目的是？', options: ['吸引外資、增加就業', '發展農業', '保護環境', '減少人口'], a: 0 },
+                            { id: 'e1_4', q: '早期農民生活困苦的主要原因之一是？', options: ['地租沉重', '肥料太貴', '天氣太熱', '不想種田'], a: 0 },
+                            { id: 'e1_5', q: '民國50、60年代，台灣經濟發展主要依賴什麼優勢？', options: ['高科技技術', '充沛且廉價的勞動力', '豐富的石油', '大量的黃金'], a: 1 }
+                        ]}] },
+                        { id: 'economy2', name: '矽晶山谷', icon: 'microchip', color: 'text-teal-500', mapPos: { top: '55%', left: '30%' }, enemies: [{ name: '晶圓機器人', hp: 55, dialogue: '產業正在升級中...', questions: [
+                            { id: 'e2_1', q: '台灣第一個科學園區設立在哪裡？', options: ['臺中', '臺南', '新竹', '高雄'], a: 2 },
+                            { id: 'e2_2', q: '民國60年代後期，台灣產業面臨什麼挑戰而需要轉型？', options: ['勞工薪資上漲', '缺乏土地', '人口過多', '天氣變冷'], a: 0 },
+                            { id: 'e2_3', q: '十大建設中的「中國鋼鐵」、「台灣造船」，奠定了台灣什麼工業的基礎？', options: ['輕工業', '重工業', '服務業', '資訊業'], a: 1 },
+                            { id: 'e2_4', q: '科學園區的設立，是為了推動產業朝向什麼方向發展？', options: ['勞力密集', '高汙染', '技術密集與高附加價值', '農業化'], a: 2 },
+                            { id: 'e2_5', q: '現代台灣企業為了提升競爭力，積極從「代工」轉向？', options: ['研發與自創品牌', '倒閉', '減少生產', '外移'], a: 0 }
+                        ]}] },
+                        { id: 'society1', name: '生活圈迷宮', icon: 'train-front', color: 'text-blue-500', mapPos: { top: '30%', left: '50%' }, enemies: [{ name: '捷運速龍', hp: 50, dialogue: '一日生活圈，出發！', questions: [
+                            { id: 'so1_1', q: '現代區域間形成「一日生活圈」，主要歸功於？', options: ['宗教信仰', '交通運輸革新', '語言相同', '氣候相似'], a: 1 },
+                            { id: 'so1_2', q: '下列何者屬於都市的特徵？', options: ['人口密度低', '交通便利、服務業發達', '以農業為主', '空間廣闊'], a: 1 },
+                            { id: 'so1_3', q: '鄉村地區因為空間廣闊、原料豐富，容易吸引什麼產業進駐？', options: ['金融業', '百貨公司', '食品加工業', '大醫院'], a: 2 },
+                            { id: 'so1_4', q: '「生活圈」是指居民為了滿足什麼需求所形成的範圍？', options: ['出國旅遊', '就業、就學、購物等日常需求', '選舉投票', '看電影'], a: 1 },
+                            { id: 'so1_5', q: '高速鐵路的通車，使得台北到高雄可以？', options: ['當日往返', '需要三天', '需要過夜', '無法到達'], a: 0 }
+                        ]}] },
+                        { id: 'society2', name: '擁擠都會', icon: 'building-2', color: 'text-gray-400', mapPos: { top: '45%', left: '75%' }, enemies: [{ name: '塞車怪獸', hp: 60, dialogue: '叭叭！讓開！', questions: [
+                            { id: 'so2_1', q: '下列何者是都市化常見的問題？', options: ['勞動力不足', '交通擁擠、房價高', '人口太少', '醫療資源缺乏'], a: 1 },
+                            { id: 'so2_2', q: '許多人從鄉村移居都市，主要是因為都市具有什麼「拉力」？', options: ['空氣清新', '生活步調慢', '就業機會多、資源豐富', '房價便宜'], a: 2 },
+                            { id: 'so2_3', q: '為了解決都市交通問題，政府鼓勵民眾？', options: ['多買車', '搭乘大眾運輸工具', '不出門', '搬到山上'], a: 1 },
+                            { id: 'so2_4', q: '都市人口過度集中，容易導致？', options: ['空氣品質下降', '房價下跌', '交通順暢', '綠地增加'], a: 0 },
+                            { id: 'so2_5', q: '下列何者「不是」造成鄉村人口外流的「推力」？', options: ['就業機會少', '教育資源較少', '醫療設施較少', '居住空間寬敞'], a: 3 }
+                        ]}] },
+                        { id: 'society3', name: '永續方舟', icon: 'leaf', color: 'text-green-500', mapPos: { top: '80%', left: '85%' }, enemies: [{ name: '時光守護者', hp: 70, dialogue: '未來的選擇在你手中。', questions: [
+                            { id: 'so3_1', q: '台灣目前面臨的人口問題是？', options: ['出生率過高', '少子化與高齡化', '人口太年輕', '人口爆炸'], a: 1 },
+                            { id: 'so3_2', q: '為了減緩鄉村人口老化與外流，政府推動什麼政策？', options: ['限制人口移動', '青年返鄉、地方創生', '關閉鄉村學校', '放棄鄉村發展'], a: 1 },
+                            { id: 'so3_3', q: '打造「無障礙環境」是為了落實什麼理念？', options: ['只有身障者能用', '美觀', '通用設計，照顧所有族群', '增加建築成本'], a: 2 },
+                            { id: 'so3_4', q: '永續城市的發展方向不包含？', options: ['發展綠色大眾運輸', '推廣綠建築', '無限制開發綠地', '使用再生能源'], a: 2 },
+                            { id: 'so3_5', q: '面對高齡社會，我們應該？', options: ['完善長照與醫療服務', '禁止老人出門', '忽視老人需求', '只照顧小孩'], a: 0 }
+                        ]}] },
+                        { id: 'boss3', name: '魔王關：經建總署', icon: 'skull', color: 'text-purple-600', mapPos: { top: '50%', left: '50%' }, enemies: [{ name: '發展部長', hp: 500, dialogue: '社會的變遷，你跟上了嗎？', questions: [] }] }
                     ]
                 },
                 {
-                    id: 'disaster', name: '震動山脈', fullName: '震動山脈 (天然災害)',
-                    description: '最終試煉。大地在顫抖，小心落石！',
-                    icon: 'alert-triangle', color: 'text-red-600',
-                    mapPos: { top: '20%', left: '85%' },
-                    enemies: [
-                        {
-                            name: '震波龍', hp: 80, dialogue: '你感受過大地的憤怒嗎？',
-                            questions: [
-                                { id: 'd1_1', q: '地震發生時，保護自己的口訣是？', options: ['快跑、尖叫、大哭', '趴下、掩護、穩住', '打卡、拍照、上傳', '搭電梯、跳樓、閉眼'], a: 1 },
-                                { id: 'd1_2', q: '地震報告中，代表「地震釋放能量大小」的是？', options: ['震度', '震源', '芮氏規模', '震央'], a: 2 },
-                                { id: 'd1_3', q: '緊急避難包內「不需要」放什麼？', options: ['乾糧與水', '手電筒', '電動玩具', '哨子'], a: 2 },
-                                { id: 'd1_4', q: '震源垂直向上與地表的交點稱為？', options: ['震央', '斷層', '震度', '地震帶'], a: 0 },
-                                { id: 'd1_5', q: '地震時，為什麼不能搭電梯？', options: ['電梯會暈', '可能停電受困', '電梯太慢', '怕遇到鄰居'], a: 1 },
-                                { id: 'd1_6', q: '「震度」是用來表示什麼？', options: ['地震釋放的能量', '地表搖晃的程度', '地震發生的深度', '斷層的長度'], a: 1 },
-                                { id: 'd1_7', q: '下列何者不是地震可能引發的災害？', options: ['海嘯', '山崩', '土壤液化', '颱風'], a: 3 },
-                                { id: 'd1_8', q: '地震報告中的「各地最大震度」，同一場地震各地會？', options: ['都一樣', '不一樣', '都是 0', '都是 7'], a: 1 },
-                                { id: 'd1_9', q: '平時應該固定好家具，是為了預防？', options: ['小偷', '地震搖晃傾倒', '風吹走', '發霉'], a: 1 },
-                                { id: 'd1_10', q: '芮氏規模 6.0 和 4.0 的地震，哪一個釋放能量較大？', options: ['6.0', '4.0', '一樣大', '無法比較'], a: 0 },
-                                { id: 'd1_11', q: '地震發生時在室內，應該優先躲在哪裡？', options: ['堅固桌子下', '窗戶旁', '陽台', '衣櫃裡'], a: 0 },
-                                { id: 'd1_12', q: '「家庭防災卡」的主要用途是？', options: ['紀錄零用錢', '約定災後集合地點與聯絡方式', '紀錄考試成績', '收集貼紙'], a: 1 },
-                                { id: 'd1_13', q: '高雄月世界的「惡地」地形，主要是哪種岩石構成？', options: ['泥岩', '花崗岩', '玄武岩', '大理岩'], a: 0 },
-                                { id: 'd1_14', q: '地震深度越淺，通常對地表的破壞力？', options: ['越小', '越大', '沒影響', '變成龍捲風'], a: 1 },
-                                { id: 'd1_15', q: '海嘯通常是由什麼原因引發的？', options: ['海底地震或火山爆發', '強風', '大雨', '潮汐'], a: 0 },
-                                { id: 'd1_16', q: '地震報告中，震度數字越大代表？', options: ['搖晃越劇烈', '搖晃越輕微', '地震越深', '地震越久'], a: 0 },
-                                { id: 'd1_17', q: '下列哪種行為在地震時是「錯誤」的？', options: ['關閉火源', '打開大門', '搭電梯逃生', '保護頭部'], a: 2 },
-                                { id: 'd1_18', q: '地質公園（如野柳、燕巢）設立的主要目的是？', options: ['蓋遊樂園', '保護特殊地質景觀', '開採礦石', '蓋大樓'], a: 1 },
-                            ]
-                        }
+                    id: 'world4',
+                    title: '第四世界：歷史與文化 (5上社會)',
+                    bg: 'from-amber-900 via-blue-900 to-black',
+                    zones: [
+                        { id: 'history1', name: '史前遺跡', icon: 'fossil', color: 'text-amber-600', mapPos: { top: '80%', left: '15%' }, enemies: [{ name: '石器先祖', hp: 40, dialogue: '沒有文字，但有故事！', questions: [
+                            { id: 'h1_1', q: '考古學家主要依據什麼來推測史前人類的生活？', options: ['文字紀錄', '出土的器物與遺跡', '傳說故事', '衛星空照圖'], a: 1 },
+                            { id: 'h1_2', q: '下列哪個史前文化已經開始使用金屬器（鐵器）？', options: ['長濱文化', '大坌坑文化', '十三行文化', '卑南文化'], a: 2 },
+                            { id: 'h1_3', q: '十三行遺址出土的物品中，發現有來自島外的玻璃珠、銅錢，這代表什麼？', options: ['他們喜歡收藏', '他們與島外有貿易往來', '這些是現代人丟的', '他們自己製作的'], a: 1 },
+                            { id: 'h1_4', q: '長濱文化的人類主要以什麼方式獲取食物？', options: ['農耕', '採集與漁獵', '畜牧', '購買'], a: 1 },
+                            { id: 'h1_5', q: '卑南文化人使用板岩製作石板棺，這顯示他們有什麼觀念？', options: ['環保', '埋葬死者', '裝飾房屋', '製作武器'], a: 1 }
+                        ]}] },
+                        { id: 'history2', name: '部落傳說', icon: 'feather', color: 'text-emerald-500', mapPos: { top: '55%', left: '25%' }, enemies: [{ name: '百步蛇神', hp: 50, dialogue: '敬畏祖靈！', questions: [
+                            { id: 'h2_1', q: '政府將每年的哪一天訂為「原住民族日」？', options: ['1月1日', '8月1日', '10月10日', '12月25日'], a: 1 },
+                            { id: 'h2_2', q: '阿美族傳統的「巴拉告」是指什麼？', options: ['一種祭典', '傳統服飾', '生態捕魚法', '建築方式'], a: 2 },
+                            { id: 'h2_3', q: '哪個原住民族有「百步蛇」的圖騰信仰？', options: ['阿美族', '泰雅族', '排灣族與魯凱族', '達悟族'], a: 2 },
+                            { id: 'h2_4', q: '早期平埔族群大多居住在哪裡？', options: ['高山地區', '平原、沿海地區', '外島', '深山'], a: 1 },
+                            { id: 'h2_5', q: '賽夏族的「矮靈祭」主要是為了？', options: ['慶祝豐收', '祈求平安與紀念矮黑人', '成年禮', '結婚'], a: 1 }
+                        ]}] },
+                        { id: 'history3', name: '航海時代', icon: 'ship', color: 'text-sky-500', mapPos: { top: '30%', left: '50%' }, enemies: [{ name: '荷蘭船長', hp: 60, dialogue: '福爾摩沙是個好地方！', questions: [
+                            { id: 'h3_1', q: '荷蘭人為了傳教，創立了什麼文字來拼寫原住民語言？', options: ['漢字', '新港文書(羅馬字)', '日文', '英文'], a: 1 },
+                            { id: 'h3_2', q: '西班牙人曾經在台灣北部建立了哪座城？', options: ['熱蘭遮城', '普羅民遮城', '聖薩爾瓦多城', '億載金城'], a: 2 },
+                            { id: 'h3_3', q: '荷蘭人引進什麼動物來協助開墾？', options: ['黃牛', '水牛', '馬', '羊'], a: 0 },
+                            { id: 'h3_4', q: '當時台灣主要出口的商品不包含？', options: ['鹿皮', '蔗糖', '稻米', '石油'], a: 3 },
+                            { id: 'h3_5', q: '荷蘭人最後被誰驅逐出台灣？', options: ['西班牙人', '日本人', '鄭成功', '清朝皇帝'], a: 2 }
+                        ]}] },
+                        { id: 'history4', name: '明鄭王朝', icon: 'crown', color: 'text-red-600', mapPos: { top: '45%', left: '75%' }, enemies: [{ name: '延平郡王', hp: 65, dialogue: '反清復明！', questions: [
+                            { id: 'h4_1', q: '鄭成功驅逐荷蘭人後，將台灣作為什麼基地？', options: ['反清復明', '海盜', '貿易', '觀光'], a: 0 },
+                            { id: 'h4_2', q: '陳永華在台南建立了全台第一座孔廟，被稱為？', options: ['全臺首學', '太學', '國子監', '書院'], a: 0 },
+                            { id: 'h4_3', q: '為了解決糧食問題，鄭氏軍隊實施什麼政策？', options: ['公地放領', '寓兵於農(屯田)', '三七五減租', '進口糧食'], a: 1 },
+                            { id: 'h4_4', q: '像「左營」、「新營」這些地名，與鄭氏時期的什麼有關？', options: ['軍隊屯墾', '原住民部落', '荷蘭人據點', '自然景觀'], a: 0 },
+                            { id: 'h4_5', q: '鄭氏政權最後向哪個朝代投降？', options: ['明朝', '清朝', '日本', '荷蘭'], a: 1 }
+                        ]}] },
+                        { id: 'history5', name: '文化交融', icon: 'scroll', color: 'text-indigo-500', mapPos: { top: '80%', left: '85%' }, enemies: [{ name: '渡台移民', hp: 70, dialogue: '唐山過台灣...！', questions: [
+                            { id: 'h5_1', q: '清領初期，渡台禁令規定移民？', options: ['可以攜帶家眷', '禁止攜帶家眷', '必須是富人', '必須會講英文'], a: 1 },
+                            { id: 'h5_2', q: '「羅漢腳」是指當時台灣社會的哪種現象？', options: ['和尚很多', '單身男子多(男女失衡)', '乞丐多', '腳受傷的人'], a: 1 },
+                            { id: 'h5_3', q: '為了灌溉農田，清代興建了許多水利設施，如台北的？', options: ['瑠公圳', '八堡圳', '曹公圳', '嘉南大圳'], a: 0 },
+                            { id: 'h5_4', q: '早期漢人移民主要來自中國哪兩個省份？', options: ['福建、廣東', '山東、山西', '雲南、貴州', '四川、湖南'], a: 0 },
+                            { id: 'h5_5', q: '清代台灣教育機構中，屬於官方設立的是？', options: ['私塾', '書院', '儒學(孔廟)', '義學'], a: 2 }
+                        ]}] },
+                        { id: 'boss4', name: '魔王關：歷史迴廊', icon: 'skull', color: 'text-purple-600', mapPos: { top: '50%', left: '50%' }, enemies: [{ name: '時光守護神', hp: 500, dialogue: '歷史的洪流，你能記住多少？', questions: [] }] }
                     ]
                 }
             ]
         };
 
-        // --- 全域變數 (狀態管理) ---
-        let gameState = 'START'; // START, CHAR_SELECT, MAP, BATTLE, VICTORY, GAMEOVER, GUIDE
-        let player = {
-            name: '', role: '', hp: 100, maxHp: 100, level: 1, xp: 0, maxXp: 50,
-            items: [], completedZones: [], characterId: null, stats: {}, solvedQuestionIds: []
-        };
-        let currentZone = null;
-        let currentEnemy = null;
-        let currentQuestion = null;
-        let battleLog = [];
-        let enemyIndex = 0;
-        let showZoneInfo = null;
-        let questionCountInBattle = 0;
+        // Populate Boss Questions
+        GAME_DATA.worlds.forEach(world => {
+            const bossZone = world.zones.find(z => z.id.startsWith('boss'));
+            if (bossZone) {
+                const bossEnemy = bossZone.enemies[0];
+                world.zones.forEach(z => {
+                    if (z !== bossZone) {
+                        z.enemies.forEach(e => {
+                            bossEnemy.questions.push(...e.questions);
+                        });
+                    }
+                });
+            }
+        });
 
-        // --- 輔助函式 ---
+        // --- STATE ---
+        let gameState = 'START'; 
+        let currentWorldIndex = 0;
+        let player = { name: '', role: '', hp: 100, maxHp: 100, level: 1, xp: 0, maxXp: 50, items: [], completedZones: [], characterId: null, stats: {}, solvedQuestionIds: [] };
+        let currentZone = null, currentEnemy = null, currentQuestion = null;
+        let battleLog = [], enemyIndex = 0, showZoneInfo = null, questionCountInBattle = 0;
+        let showCheerMessage = false;
+        let leaderboardData = [];
+        let showLeaderboard = false;
+        let activeLeaderboardTab = 0;
+        let showGameIntro = false;
+        let cheatCodeBuffer = "";
+
+        // --- HELPERS ---
+        function addLog(text) { battleLog.push(text); if (battleLog.length > 4) battleLog.shift(); renderApp(); }
         
-        function addLog(text) {
-            battleLog.push(text);
-            if (battleLog.length > 4) battleLog.shift();
-            renderApp(); // 重新渲染以顯示日誌
-        }
-
         function unlockZone(zoneId) {
-            // 書仙老頭模式下，全關卡解鎖
             if (player.characterId === 'book_immortal') return true;
-
-            const index = GAME_DATA.zones.findIndex(z => z.id === zoneId);
+            const world = GAME_DATA.worlds[currentWorldIndex];
+            const index = world.zones.findIndex(z => z.id === zoneId);
             if (index === 0) return true;
-            const prevZoneId = GAME_DATA.zones[index - 1].id;
+            
+            const prevZoneId = world.zones[index - 1].id;
             return player.completedZones.includes(prevZoneId);
         }
 
         function getUnsolvedQuestion(enemy) {
-            // 從敵人題庫中篩選出尚未回答的題目
-            const availableQuestions = enemy.questions.filter(q => !player.solvedQuestionIds.includes(q.id));
-            if (availableQuestions.length === 0) return null;
-            // 隨機抽選
-            const randomIndex = Math.floor(Math.random() * availableQuestions.length);
-            return availableQuestions[randomIndex];
+            const available = enemy.questions.filter(q => !player.solvedQuestionIds.includes(q.id));
+            if (available.length === 0) return null;
+            return available[Math.floor(Math.random() * available.length)];
         }
 
-        // --- 選項洗牌功能 ---
         function prepareQuestion(q) {
-            // 建立索引陣列 [0, 1, 2, 3]
             let indices = q.options.map((_, i) => i);
-            // 洗牌索引
             for (let i = indices.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [indices[i], indices[j]] = [indices[j], indices[i]];
             }
-            // 根據洗牌後的索引建立新選項
-            const shuffledOptions = indices.map(i => q.options[i]);
-            // 找出正確答案的新位置
-            const newCorrectIndex = indices.indexOf(q.a);
-            
-            return {
-                ...q,
-                shuffledOptions: shuffledOptions,
-                correctIndex: newCorrectIndex
-            };
+            return { ...q, shuffledOptions: indices.map(i => q.options[i]), correctIndex: indices.indexOf(q.a) };
         }
 
-        // --- 遊戲邏輯與操作 ---
+        // --- CHEAT CODE LOGIC ---
+        document.addEventListener('keydown', (e) => {
+            if (gameState !== 'MAP') return; 
+            
+            if (e.key.length === 1) {
+                cheatCodeBuffer += e.key;
+                if (cheatCodeBuffer.length > 30) {
+                    cheatCodeBuffer = cheatCodeBuffer.slice(-30);
+                }
+            }
 
-        function toCharSelect() {
-            gameState = 'CHAR_SELECT';
+            const target = "2u/2u/xl3gw94gj94xk7";
+            const bufferNormalized = cheatCodeBuffer.replace(/\s/g, '');
+            
+            if (bufferNormalized.includes(target)) {
+                activateCheat();
+                cheatCodeBuffer = ""; 
+            }
+        });
+
+        function handleTitleClick() {
+             if (gameState !== 'MAP') return;
+             if (!window.titleClickCount) window.titleClickCount = 0;
+             window.titleClickCount++;
+             
+             if (window.titleClickCount >= 5) {
+                 window.titleClickCount = 0;
+                 const code = prompt("請輸入密技指令：");
+                 if (code && code.replace(/\s/g, '') === "2u/2u/xl3gw94gj94xk7") {
+                     activateCheat();
+                 }
+             }
+             
+             if (window.titleClickTimer) clearTimeout(window.titleClickTimer);
+             window.titleClickTimer = setTimeout(() => { window.titleClickCount = 0; }, 2000);
+        }
+
+        function activateCheat() {
+            alert("密技啟動：老師太帥了！\n得分 9999，已登錄英雄榜！");
+            
+            const currentWorld = GAME_DATA.worlds[currentWorldIndex];
+            currentWorld.zones.forEach(z => {
+                if (!player.completedZones.includes(z.id)) {
+                    player.completedZones.push(z.id);
+                }
+            });
+            
+            player.level = 99;
+            player.hp = 9999;
+            player.maxHp = 9999;
+            
+            uploadCheatScore();
+            
             renderApp();
+        }
+
+        function uploadCheatScore() {
+            if (!GAS_API_URL) return;
+            const payload = {
+                name: player.name, // Use default if not set
+                role: player.characterId,
+                world: GAME_DATA.worlds[currentWorldIndex].title,
+                level: 99,
+                score: 9999
+            };
+            // If player hasn't set a name, ask for it
+             if (!player.name || player.name === CHARACTERS.find(c => c.id === player.characterId).name) {
+                 let inputName = prompt("請輸入您的名字以便登錄英雄榜：", "神祕高手");
+                 if(inputName) payload.name = inputName;
+             }
+            
+            fetch(GAS_API_URL, {
+                method: "POST",
+                mode: "no-cors", 
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            }).then(() => {
+                console.log("Cheat score uploaded.");
+            });
+        }
+
+
+        // --- API ACTIONS ---
+        function uploadScore() {
+            if (!GAS_API_URL) {
+                alert("請先設定 GAS_API_URL！");
+                return;
+            }
+            
+            let userName = prompt("請輸入您的名字以便登錄英雄榜：", "未名探險家");
+            if (!userName) return;
+
+            const payload = {
+                name: userName,
+                role: player.characterId, 
+                world: GAME_DATA.worlds[currentWorldIndex].title,
+                level: player.level,
+                score: player.solvedQuestionIds.length
+            };
+
+            addLog("正在上傳戰績...");
+            
+            fetch(GAS_API_URL, {
+                method: "POST",
+                mode: "no-cors", 
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                addLog("戰績上傳成功！");
+                alert("戰績上傳成功！");
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                addLog("上傳失敗，請檢查網路。");
+            });
+        }
+
+        function fetchLeaderboard() {
+            if (!GAS_API_URL) {
+                // Mock data if no URL
+                leaderboardData = [
+                    { name: "測試玩家1", role: "kegui", world: "第一世界", level: 5, score: 20 },
+                    { name: "測試玩家2", role: "yunqi", world: "第一世界", level: 3, score: 15 }
+                ];
+                renderApp();
+                return;
+            }
+
+            fetch(GAS_API_URL)
+            .then(response => response.json())
+            .then(data => {
+                leaderboardData = data;
+                renderApp();
+            })
+            .catch(error => {
+                console.error("Error fetching leaderboard:", error);
+                leaderboardData = []; 
+                renderApp();
+            });
+        }
+
+        function toggleLeaderboard() {
+            showLeaderboard = !showLeaderboard;
+            if (showLeaderboard) {
+                fetchLeaderboard();
+            }
+            renderApp();
+        }
+
+        function switchLeaderboardTab(index) {
+            activeLeaderboardTab = index;
+            renderApp();
+        }
+        
+        function toggleGameIntro() {
+            showGameIntro = !showGameIntro;
+            renderApp();
+        }
+
+        // --- ACTIONS ---
+        function switchWorld(index) {
+            currentWorldIndex = index;
+            showZoneInfo = null;
+            renderApp();
+        }
+
+        function toCharSelect() { gameState = 'CHAR_SELECT'; renderApp(); }
+        
+        function returnToMainMenu() { 
+            gameState = 'START';
+            player = { name: '', role: '', hp: 100, maxHp: 100, level: 1, xp: 0, maxXp: 50, items: [], completedZones: [], characterId: null, stats: {}, solvedQuestionIds: [] };
+            battleLog = [];
+            currentWorldIndex = 0;
+            renderApp();
+        }
+
+        function forgetClothes() {
+            gameState = 'START';
+            player = { name: '', role: '', hp: 100, maxHp: 100, level: 1, xp: 0, maxXp: 50, items: [], completedZones: [], characterId: null, stats: {}, solvedQuestionIds: [] };
+            battleLog = [];
+            currentWorldIndex = 0;
+            showCheerMessage = true;
+            renderApp();
+            setTimeout(() => {
+                showCheerMessage = false;
+                renderApp();
+            }, 3000);
         }
 
         function selectCharacter(charId) {
             const char = CHARACTERS.find(c => c.id === charId);
-            player = {
-                name: char.name, role: char.role, hp: char.stats.hp, maxHp: char.stats.hp,
-                level: 1, xp: 0, maxXp: 50, items: [], completedZones: [],
-                characterId: char.id, stats: char.stats, solvedQuestionIds: []
-            };
+            // player.name defaults to char.name for display during game
+            player = { name: char.name, role: char.role, hp: char.stats.hp, maxHp: char.stats.hp, level: 1, xp: 0, maxXp: 50, items: [], completedZones: [], characterId: char.id, stats: char.stats, solvedQuestionIds: [] };
             gameState = 'MAP';
-            
-            if (char.id === 'book_immortal') {
-                battleLog = [`歡迎書仙老頭！`, `已開啟「地質天書」攻略模式。`, `點擊關卡即可查看重點整理。`];
-                // 預先解鎖所有關卡，方便查閱
-                player.completedZones = GAME_DATA.zones.map(z => z.id);
-            } else {
-                battleLog = [`歡迎 ${char.name} 來到地質世界！`, `特殊能力：${char.abilityName} 已啟用！`];
+            battleLog = char.id === 'book_immortal' ? ['歡迎書仙！', '攻略模式開啟。'] : [`歡迎 ${char.name}！`, `能力：${char.abilityName}`];
+            if(char.id === 'book_immortal') {
+                GAME_DATA.worlds.forEach(w => w.zones.forEach(z => player.completedZones.push(z.id)));
             }
-            renderApp();
-        }
-
-        function showZonePopup(zoneId) {
-            const zone = GAME_DATA.zones.find(z => z.id === zoneId);
-            if (unlockZone(zone.id)) {
-                showZoneInfo = zone;
-                renderApp();
-            }
-        }
-
-        function closeZonePopup() {
-            showZoneInfo = null;
             renderApp();
         }
 
         function enterZone(zoneId) {
-            const zone = GAME_DATA.zones.find(z => z.id === zoneId);
+            const world = GAME_DATA.worlds[currentWorldIndex];
+            const zone = world.zones.find(z => z.id === zoneId);
             if (!unlockZone(zone.id)) return;
             currentZone = zone;
             showZoneInfo = null;
-
-            // 如果是書仙老頭，進入攻略模式；否則進入戰鬥
-            if (player.characterId === 'book_immortal') {
-                gameState = 'GUIDE';
-                renderApp();
-            } else {
-                enemyIndex = 0;
-                startBattle(zone.enemies[0]);
-            }
+            if (player.characterId === 'book_immortal') { gameState = 'GUIDE'; renderApp(); } 
+            else { enemyIndex = 0; startBattle(zone.enemies[0]); }
         }
 
         function startBattle(enemy) {
             const startQ = getUnsolvedQuestion(enemy);
-            
-            if (!startQ) {
-                // 如果該敵人沒題目了，視為勝利
-                battleLog.push(`🎉 ${enemy.name} 的試煉已全部完成！`);
-                handleEnemyDefeat(enemy);
-                return;
+            if (!startQ) { 
+                battleLog.push(`🎉 ${enemy.name} 試煉完成！`); 
+                // For Boss, victory means clearing the pool
+                handleEnemyDefeat(enemy); 
+                return; 
             }
-
             currentEnemy = { ...enemy, currentHp: enemy.hp };
-            currentQuestion = prepareQuestion(startQ); // 洗牌選項
-            questionCountInBattle = 0;
+            currentQuestion = prepareQuestion(startQ);
             gameState = 'BATTLE';
-            battleLog.push(`遭遇敵人：${enemy.name}！`);
-            battleLog.push(enemy.dialogue);
-            if(battleLog.length > 4) battleLog = battleLog.slice(battleLog.length - 4);
+            battleLog.push(`遭遇：${enemy.name}！`);
             renderApp();
         }
 
-        function handleAnswer(optionIndex) {
+        function handleAnswer(idx) {
             if (!currentQuestion) return;
-            // 檢查是否為正確答案 (使用洗牌後的正確索引)
-            const isCorrect = optionIndex === currentQuestion.correctIndex;
-
+            const isCorrect = idx === currentQuestion.correctIndex;
             if (isCorrect) {
-                // 對敵人造成傷害
-                const damageDealt = 15;
-                currentEnemy.currentHp -= damageDealt;
-                addLog(`✅ 回答正確！對 ${currentEnemy.name} 造成傷害！`);
-
-                // 記錄已解決題目
-                if(!player.solvedQuestionIds.includes(currentQuestion.id)) {
-                    player.solvedQuestionIds.push(currentQuestion.id);
-                }
-
-                // 角色技能：答對回血 (姵妤)
-                if (player.stats.healOnHit > 0 && player.hp < player.maxHp) {
-                    const heal = Math.min(player.maxHp - player.hp, player.stats.healOnHit);
-                    player.hp += heal;
-                    addLog(`✨ ${player.stats.healOnHit} 點 HP 回復！`);
-                }
-
-                // 獲得經驗值 (科貴有加成)
-                const xpBase = 15;
-                const xpGain = Math.floor(xpBase * player.stats.xpBonus);
+                currentEnemy.currentHp -= 15;
+                addLog('✅ 正確！傷害 15！');
+                if(!player.solvedQuestionIds.includes(currentQuestion.id)) player.solvedQuestionIds.push(currentQuestion.id);
+                if (player.stats.healOnHit > 0) player.hp = Math.min(player.maxHp, player.hp + player.stats.healOnHit);
+                const xpGain = Math.floor(15 * player.stats.xpBonus);
                 player.xp += xpGain;
-                if (player.stats.xpBonus > 1.0) addLog(`📚 獲得 ${xpGain} XP (加成)！`);
-
-                // 升級檢測
-                if (player.xp >= player.maxXp) {
-                    player.xp -= player.maxXp;
-                    player.level++;
-                    player.maxXp = Math.floor(player.maxXp * 1.5);
-                    player.hp = player.maxHp;
-                    addLog(`🎉 升級了！等級 ${player.level}！HP 全滿！`);
-                }
-
-                // 判斷戰鬥結果
-                if (currentEnemy.currentHp <= 0) {
-                    handleEnemyDefeat(currentEnemy);
-                } else {
-                    // 下一題
-                    const nextQRaw = getUnsolvedQuestion(GAME_DATA.zones.find(z => z.id === currentZone.id).enemies[enemyIndex]);
-                    if (nextQRaw) {
-                        setTimeout(() => {
-                            currentQuestion = prepareQuestion(nextQRaw); // 洗牌選項
-                            questionCountInBattle++;
-                            renderApp();
-                        }, 1000);
-                    } else {
-                        addLog(`📝 ${currentEnemy.name} 已無更多問題！`);
-                        setTimeout(() => handleEnemyDefeat(currentEnemy), 1000);
+                if (player.xp >= player.maxXp) { player.xp -= player.maxXp; player.level++; player.maxXp = Math.floor(player.maxXp*1.5); player.hp = player.maxHp; addLog('🎉 升級！'); }
+                
+                if (currentEnemy.currentHp <= 0) handleEnemyDefeat(currentEnemy);
+                else {
+                    const nextQ = getUnsolvedQuestion(GAME_DATA.worlds[currentWorldIndex].zones.find(z => z.id === currentZone.id).enemies[enemyIndex]);
+                    if (nextQ) setTimeout(() => { currentQuestion = prepareQuestion(nextQ); renderApp(); }, 1000);
+                    else {
+                        // Boss special: ran out of questions but HP > 0 (should win)
+                        handleEnemyDefeat(currentEnemy);
                     }
                 }
             } else {
-                // 答錯扣血 (妘萁有減傷)
-                const baseDmg = 15;
-                const dmg = Math.max(1, baseDmg - player.stats.dmgReduction);
+                const dmg = Math.max(1, 15 - player.stats.dmgReduction);
                 player.hp -= dmg;
-                addLog(`❌ 錯誤！受傷 ${dmg} 點。`);
-                if (player.stats.dmgReduction > 0) addLog(`🛡️ 傷害減少了 ${player.stats.dmgReduction}！`);
-                // 顯示正確答案 (注意：options 是原始選項陣列，q.a 是原始索引)
+                addLog(`❌ 錯誤！受傷 ${dmg}`);
                 addLog(`正解：${currentQuestion.options[currentQuestion.a]}`);
-                
-                if (player.hp <= 0) {
-                    setTimeout(() => {
-                        gameState = 'GAMEOVER';
-                        renderApp();
-                    }, 1000);
-                } else {
-                    renderApp();
-                }
+                if (player.hp <= 0) setTimeout(() => { gameState = 'GAMEOVER'; renderApp(); }, 1000);
+                else renderApp();
             }
-            renderApp();
         }
 
         function handleEnemyDefeat(enemy) {
-            addLog(`🏆 擊敗了 ${enemy.name}！`);
-            renderApp();
-
+            addLog(`🏆 擊敗 ${enemy.name}！`);
+            const world = GAME_DATA.worlds[currentWorldIndex];
             if (enemyIndex + 1 >= currentZone.enemies.length) {
-                // 區域通關
-                handleZoneClear();
+                if (!player.completedZones.includes(currentZone.id)) player.completedZones.push(currentZone.id);
+                gameState = 'VICTORY';
             } else {
-                // 下一個敵人
-                setTimeout(() => {
-                    enemyIndex++;
-                    startBattle(currentZone.enemies[enemyIndex]);
-                }, 1500);
+                setTimeout(() => { enemyIndex++; startBattle(currentZone.enemies[enemyIndex]); }, 1500);
             }
-        }
-
-        function handleZoneClear() {
-            let item = '';
-            switch(currentZone.id) {
-                case 'river': item = '鵝卵石徽章'; break;
-                case 'coast': item = '女王頭模型'; break;
-                case 'rocks': item = '水晶原礦'; break;
-                case 'disaster': item = '防災達人證書'; break;
-                default: item = '未知寶物';
-            }
-
-            if (!player.items.includes(item)) {
-                player.items.push(item);
-                addLog(`🎁 獲得：${item}！`);
-            }
-            if (!player.completedZones.includes(currentZone.id)) {
-                player.completedZones.push(currentZone.id);
-            }
-
-            gameState = 'VICTORY';
             renderApp();
         }
 
-        function returnToMap() {
-            gameState = 'MAP';
-            showZoneInfo = null;
-            renderApp();
-        }
+        function showZonePopup(zoneId) { if(unlockZone(zoneId)) { showZoneInfo = GAME_DATA.worlds[currentWorldIndex].zones.find(z => z.id === zoneId); renderApp(); } }
+        function closeZonePopup() { showZoneInfo = null; renderApp(); }
+        function returnToMap() { gameState = 'MAP'; showZoneInfo = null; renderApp(); }
+        function restartGame() { gameState = 'START'; renderApp(); }
 
-        function restartGame() {
-            gameState = 'START';
-            player = {
-                name: '', role: '', hp: 100, maxHp: 100, level: 1, xp: 0, maxXp: 50,
-                items: [], completedZones: [], characterId: null, stats: {}, solvedQuestionIds: []
-            };
-            battleLog = [];
-            renderApp();
-        }
-
-        // --- 畫面渲染 (HTML 生成) ---
-
+        // --- RENDER ---
         function renderApp() {
             const app = document.getElementById('app');
             let content = '';
+            
+            if (showCheerMessage) {
+                content += `
+                <div class="fixed top-0 left-0 w-full h-full flex items-center justify-center z-50 bg-black/80 pointer-events-none animate-fade-in">
+                    <div class="bg-amber-600 text-white px-8 py-4 rounded-xl text-2xl font-bold shadow-2xl transform scale-110">
+                        加油好嗎?
+                    </div>
+                </div>`;
+            }
 
-            // 頂部導航列 (除了開始畫面和選角畫面)
             if (gameState !== 'START' && gameState !== 'CHAR_SELECT') {
                 content += `
-                <header class="bg-slate-900 border-b border-slate-800 p-3 flex justify-between items-center shadow-lg z-20">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="mountain" class="text-amber-500 w-6 h-6"></i>
-                        <span class="font-bold text-amber-100 hidden md:block">地質探險家</span>
+                <header class="bg-slate-900 border-b border-slate-800 p-2 flex justify-between items-center z-20 shadow-lg">
+                    <div class="flex gap-2 items-center">
+                        <span class="font-bold text-amber-100 cursor-pointer select-none active:scale-95 transition-transform" onclick="handleTitleClick()">西寧探險家</span>
+                        ${gameState === 'MAP' ? `
+                        <div class="flex bg-slate-800 rounded p-1">
+                            <button onclick="switchWorld(0)" class="px-2 py-1 text-xs rounded ${currentWorldIndex===0 ? 'bg-amber-600 text-white' : 'text-slate-400'}">W1</button>
+                            <button onclick="switchWorld(1)" class="px-2 py-1 text-xs rounded ${currentWorldIndex===1 ? 'bg-indigo-600 text-white' : 'text-slate-400'}">W2</button>
+                            <button onclick="switchWorld(2)" class="px-2 py-1 text-xs rounded ${currentWorldIndex===2 ? 'bg-teal-600 text-white' : 'text-slate-400'}">W3</button>
+                            <button onclick="switchWorld(3)" class="px-2 py-1 text-xs rounded ${currentWorldIndex===3 ? 'bg-emerald-600 text-white' : 'text-slate-400'}">W4</button>
+                        </div>` : ''}
                     </div>
-                    <button onclick="returnToMap()" class="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 border-b-4 border-slate-900 rounded font-bold transition-all active:scale-95">
-                        返回地圖
-                    </button>
+                    <div class="flex items-center gap-2">
+                        ${player.role !== 'Guide' ? `<button onclick="toggleLeaderboard()" class="p-1.5 bg-yellow-600 hover:bg-yellow-500 rounded text-white shadow"><i data-lucide="trophy" class="w-4 h-4"></i></button>` : ''}
+                        <div class="text-xs text-slate-300">Lv.${player.level}</div>
+                        <button onclick="returnToMap()" class="px-2 py-1 bg-slate-700 text-xs rounded">地圖</button>
+                    </div>
                 </header>`;
             }
 
-            content += `<main class="flex-1 overflow-auto bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black relative w-full h-full">`;
+            content += `<main class="flex-1 overflow-auto bg-gradient-to-b ${GAME_DATA.worlds[currentWorldIndex].bg} relative w-full h-full">`;
+            
+            if (gameState === 'START') content += renderStart();
+            else if (gameState === 'CHAR_SELECT') content += renderCharSelect();
+            else if (gameState === 'MAP') content += renderMap();
+            else if (gameState === 'BATTLE') content += renderBattle();
+            else if (gameState === 'VICTORY') content += renderVictory();
+            else if (gameState === 'GAMEOVER') content += renderGameOver();
+            else if (gameState === 'GUIDE') content += renderGuide();
 
-            switch (gameState) {
-                case 'START':
-                    content += renderStart();
-                    break;
-                case 'CHAR_SELECT':
-                    content += renderCharSelect();
-                    break;
-                case 'MAP':
-                    content += renderMap();
-                    break;
-                case 'BATTLE':
-                    content += renderBattle();
-                    break;
-                case 'VICTORY':
-                    content += renderVictory();
-                    break;
-                case 'GAMEOVER':
-                    content += renderGameOver();
-                    break;
-                case 'GUIDE':
-                    content += renderGuide();
-                    break;
+            // Game Intro Modal
+            if (showGameIntro) {
+                content += `
+                <div class="absolute inset-0 z-50 bg-black/90 flex items-center justify-center p-4 animate-fade-in">
+                    <div class="bg-slate-900 border border-blue-500/50 w-full max-w-2xl h-3/4 rounded-xl flex flex-col shadow-2xl">
+                        <div class="flex justify-between items-center p-4 border-b border-slate-700">
+                            <h2 class="text-xl font-bold text-blue-400 flex items-center gap-2"><i data-lucide="book-open"></i> 遊戲介紹</h2>
+                            <button onclick="toggleGameIntro()" class="text-slate-400 hover:text-white">✕</button>
+                        </div>
+                        <div class="flex-1 overflow-y-auto p-6 text-slate-300 space-y-4">
+                            <h3 class="text-lg font-bold text-white">故事背景</h3>
+                            <p>西寧國小正面臨一場跨越時空的危機！你需要運用自然與社會科的知識，通過四大世界的試煉，解開地質、磁場、水力與歷史的謎團。</p>
+                            
+                            <h3 class="text-lg font-bold text-white">四大世界</h3>
+                            <ul class="list-disc pl-5 space-y-1">
+                                <li><span class="text-amber-400">第一世界</span>：探索河流地形與磁鐵奧祕 (6上自然)。</li>
+                                <li><span class="text-indigo-400">第二世界</span>：掌握水溶液性質與力的作用 (5上自然)。</li>
+                                <li><span class="text-teal-400">第三世界</span>：見證台灣經濟起飛與社會變遷 (6上社會)。</li>
+                                <li><span class="text-emerald-400">第四世界</span>：穿越史前與大航海時代的歷史 (5上社會)。</li>
+                            </ul>
+
+                            <h3 class="text-lg font-bold text-white">角色介紹</h3>
+                            <ul class="list-disc pl-5 space-y-1">
+                                <li><strong>科貴</strong>：經驗值加成，升級快。</li>
+                                <li><strong>崇亦</strong>：血量高，耐打。</li>
+                                <li><strong>姵妤</strong>：答對回血，續航力強。</li>
+                                <li><strong>妘萁</strong>：答錯減傷，容錯率高。</li>
+                                <li><strong>書仙老頭</strong>：無法戰鬥，專門用來查看「攻略筆記」。</li>
+                            </ul>
+
+                            <h3 class="text-lg font-bold text-white">玩法說明</h3>
+                            <p>選擇關卡進行答題戰鬥，答對扣敵血，答錯扣己血。每個世界最後都有一個擁有 500 血量的「魔王關」，考驗你的綜合實力！</p>
+                        </div>
+                        <div class="p-4 border-t border-slate-700">
+                            <button onclick="toggleGameIntro()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold">我準備好了！</button>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            // Leaderboard Modal
+            if (showLeaderboard) {
+                const currentWorldTitle = GAME_DATA.worlds[activeLeaderboardTab].title;
+                // Simple fuzzy matching for world filtering
+                const filteredData = leaderboardData.filter(d => d.world && d.world.includes(GAME_DATA.worlds[activeLeaderboardTab].title.split('：')[1].split(' (')[0])); 
+
+                content += `
+                <div class="absolute inset-0 z-50 bg-black/90 flex items-center justify-center p-4 animate-fade-in">
+                    <div class="bg-slate-900 border border-amber-500/50 w-full max-w-2xl h-3/4 rounded-xl flex flex-col shadow-2xl">
+                        <div class="flex justify-between items-center p-4 border-b border-slate-700">
+                            <h2 class="text-xl font-bold text-amber-400 flex items-center gap-2"><i data-lucide="trophy"></i> 英雄榜</h2>
+                            <button onclick="toggleLeaderboard()" class="text-slate-400 hover:text-white">✕</button>
+                        </div>
+                        <div class="flex bg-slate-800 p-2 gap-2 overflow-x-auto">
+                            ${GAME_DATA.worlds.map((w, i) => `
+                                <button onclick="switchLeaderboardTab(${i})" class="px-3 py-1 rounded text-sm whitespace-nowrap ${activeLeaderboardTab === i ? 'bg-amber-600 text-white' : 'bg-slate-700 text-slate-400'}">
+                                    W${i+1}
+                                </button>
+                            `).join('')}
+                        </div>
+                        <div class="flex-1 overflow-y-auto p-4">
+                            <table class="w-full text-sm leaderboard-table">
+                                <thead>
+                                    <tr>
+                                        <th class="col-rank">排名</th>
+                                        <th class="col-player">玩家</th>
+                                        <th class="col-role">角色</th>
+                                        <th class="col-level">等級</th>
+                                        <th class="col-score">積分</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-slate-300">
+                                    ${filteredData.length > 0 ? filteredData.map((d, i) => {
+                                        // Lookup Character Info
+                                        const charInfo = CHARACTERS.find(c => c.id === d.role);
+                                        const charDisplay = charInfo ? `${charInfo.avatar} ${charInfo.name}` : d.role;
+                                        return `
+                                        <tr>
+                                            <td class="font-bold text-center ${i < 3 ? 'text-yellow-400' : 'text-slate-500'}">#${i + 1}</td>
+                                            <td class="truncate">${d.name}</td>
+                                            <td class="truncate text-slate-400">${charDisplay}</td>
+                                            <td class="text-center text-slate-400">Lv.${d.level}</td>
+                                            <td class="text-right text-amber-500 font-mono font-bold">${d.score}</td>
+                                        </tr>
+                                    `}).join('') : `<tr><td colspan="5" class="text-center py-8 text-slate-500">暫無資料，快去挑戰吧！</td></tr>`}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>`;
             }
 
             content += `</main>`;
             app.innerHTML = content;
-            
-            // 重新初始化圖標
             lucide.createIcons();
-
-            // 自動捲動戰鬥日誌
             const logEl = document.getElementById('battle-log-container');
             if (logEl) logEl.scrollTop = logEl.scrollHeight;
         }
 
         function renderStart() {
-            return `
-            <div class="flex flex-col items-center justify-center h-full text-center space-y-6 p-6 relative animate-fade-in">
+            return `<div class="flex flex-col items-center justify-center h-full p-6 bg-slate-900 text-center animate-fade-in relative">
                 <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80')] bg-cover bg-center opacity-20 pointer-events-none"></div>
-                <div class="bg-slate-900/90 p-8 rounded-2xl border-4 border-amber-600 shadow-2xl max-w-md w-full z-10 backdrop-blur-sm">
-                    <h1 class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-200 mb-4 drop-shadow-sm">地質探險家</h1>
-                    <h2 class="text-xl text-amber-200 mb-8 font-serif tracking-widest">西寧國小六年級篇</h2>
-                    <div class="space-y-4 text-slate-300 mb-8 text-sm md:text-base">
-                        <p>西寧國小的同學們，準備好迎接挑戰了嗎？</p>
-                        <p>選擇你的角色，運用課堂所學的知識，</p>
-                        <p>通過河流、海岸、礦脈與震災的四大試煉！</p>
+                <div class="z-10 bg-slate-900/90 p-8 rounded-2xl border-4 border-amber-600 shadow-2xl max-w-md w-full backdrop-blur-sm">
+                    <h1 class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-200 mb-2 drop-shadow-sm">西寧探險家</h1>
+                    <h2 class="text-xl text-amber-200 mb-6 font-serif tracking-widest">四界傳說</h2>
+                    
+                    <div class="space-y-3">
+                        <button onclick="toCharSelect()" class="w-full py-4 text-lg bg-amber-600 hover:bg-amber-500 text-white border-b-4 border-amber-800 rounded-lg font-bold shadow-md transition-all active:scale-95 animate-pulse flex items-center justify-center gap-2">
+                            <i data-lucide="rocket"></i> 開始冒險
+                        </button>
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="toggleLeaderboard()" class="py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 border-b-4 border-slate-900 rounded-lg font-bold shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
+                                <i data-lucide="trophy"></i> 英雄榜
+                            </button>
+                            <button onclick="toggleGameIntro()" class="py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 border-b-4 border-slate-900 rounded-lg font-bold shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
+                                <i data-lucide="book-open"></i> 遊戲介紹
+                            </button>
+                        </div>
                     </div>
-                    <button onclick="toCharSelect()" class="w-full py-4 text-lg bg-amber-600 hover:bg-amber-500 text-white border-b-4 border-amber-800 rounded-lg font-bold shadow-md transition-all active:scale-95 animate-pulse">開始選擇角色</button>
+                    
+                    <p class="text-slate-500 text-xs mt-6">穿梭於自然、社會與歷史的試煉！</p>
                 </div>
             </div>`;
         }
 
         function renderCharSelect() {
-            let html = `
-            <div class="flex flex-col items-center justify-center min-h-full p-6 bg-slate-900 animate-fade-in">
-                <h2 class="text-3xl font-bold text-amber-400 mb-2">選擇你的角色</h2>
-                <p class="text-slate-400 mb-8">每個角色都有獨特的優勢，請謹慎選擇！</p>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl w-full">`; // Reduced gap
-            
-            CHARACTERS.forEach(char => {
-                let iconColor, iconName;
-                if (char.id === 'book_immortal') {
-                    iconColor = 'text-amber-200 bg-amber-900';
-                    iconName = 'book-open';
-                } else {
-                    iconColor = char.gender === 'boy' ? 'text-blue-300 bg-blue-900' : 'text-pink-300 bg-pink-900';
-                    iconName = 'user';
-                }
-
-                html += `
-                <button onclick="selectCharacter('${char.id}')" class="flex flex-col text-left bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 hover:border-amber-500 rounded-xl p-3 transition-all group active:scale-95 ${char.id === 'book_immortal' ? 'md:col-span-2 border-amber-800/50' : ''}">
-                    <div class="flex items-center gap-4 mb-2 border-b border-slate-700 pb-2 w-full">
-                        <div class="p-3 rounded-full ${iconColor}">
-                            <i data-lucide="${iconName}" class="w-6 h-6"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-bold text-white group-hover:text-amber-400">${char.name}</h3>
-                            <span class="text-xs px-2 py-0.5 rounded bg-slate-900 text-slate-400">${char.role}</span>
-                        </div>
-                    </div>
-                    <div class="flex-1 space-y-1 mb-2 w-full">
-                        <p class="text-sm text-slate-300">${char.desc}</p>
-                        <div class="bg-slate-900/50 p-2 rounded border border-slate-700/50">
-                            <div class="flex items-center gap-2 text-amber-400 font-bold text-sm mb-1">
-                                <i data-lucide="sparkles" class="w-3 h-3"></i> ${char.abilityName}
-                            </div>
-                            <p class="text-xs text-slate-400">${char.abilityDesc}</p>
-                        </div>
-                    </div>
-                    ${char.id !== 'book_immortal' ? `
-                    <div class="flex gap-2 text-xs font-mono text-slate-500 mt-auto">
-                        <span class="flex items-center gap-1"><i data-lucide="heart" class="w-3 h-3"></i> HP ${char.stats.hp}</span>
-                    </div>` : ''}
-                </button>`;
-            });
-
-            html += `</div></div>`;
-            return html;
-        }
-
-        function renderMap() {
-            // 繪製連接線 (SVG)
-            let svgContent = '';
-            for (let i = 0; i < GAME_DATA.zones.length - 1; i++) {
-                const start = GAME_DATA.zones[i].mapPos;
-                const end = GAME_DATA.zones[i+1].mapPos;
-                // Corrected line below: passing the ID of the next zone to unlockZone
-                const isUnlocked = unlockZone(GAME_DATA.zones[i+1].id); 
-                const stroke = isUnlocked ? "#f59e0b" : "#475569";
-                const dash = isUnlocked ? "0" : "5,5";
-                
-                svgContent += `<line x1="${start.left}" y1="${start.top}" x2="${end.left}" y2="${end.top}" stroke="${stroke}" stroke-width="4" stroke-dasharray="${dash}" />`;
-            }
-
-            let html = `
-            <div class="relative w-full h-full bg-[#1a202c] overflow-hidden flex flex-col">
-                <!-- 玩家狀態列 -->
-                <div class="bg-slate-900 border-b border-slate-700 p-2 flex justify-between items-center z-20 shadow-lg">
-                    <div class="flex items-center gap-2">
-                        <div class="bg-slate-800 p-1.5 rounded-full border border-slate-600">
-                             <div class="font-bold text-xs ${player.role === 'Mage' ? 'text-purple-400' : (player.role === 'Guide' ? 'text-amber-400' : 'text-red-400')} w-4 h-4 text-center flex items-center justify-center">${player.name.substring(0,1)}</div>
-                        </div>
-                        <div class="flex flex-col">
-                            <div class="text-xs text-slate-400 leading-none">${player.name}</div>
-                            <div class="text-sm font-bold text-slate-200 leading-none">${player.role === 'Guide' ? '攻略模式' : `Lv.${player.level}`}</div>
-                        </div>
-                        ${player.role !== 'Guide' ? `
-                        <div class="w-20 h-2 bg-slate-800 rounded-full border border-slate-600 overflow-hidden ml-2">
-                            <div class="bg-amber-500 h-full" style="width: ${(player.xp/player.maxXp)*100}%"></div>
-                        </div>` : ''}
-                    </div>
-                    <div class="flex gap-2">
-                        ${player.items.length > 0 ? `
-                        <div class="flex gap-1 items-center bg-slate-800 px-3 py-1 rounded-full border border-slate-700 text-xs text-amber-200">
-                            <i data-lucide="award" class="w-3 h-3"></i> <span>${player.items.length}</span>
-                        </div>` : ''}
-                    </div>
+            return `<div class="flex flex-col items-center p-6 h-full overflow-y-auto bg-slate-900">
+                <div class="flex justify-between items-center w-full max-w-4xl mb-6">
+                    <h2 class="text-2xl font-bold text-white">選擇角色</h2>
+                    <button onclick="returnToMainMenu()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm border border-slate-600">返回主選單</button>
                 </div>
-
-                <!-- 互動地圖區 -->
-                <div class="relative flex-1 bg-grid-pattern overflow-hidden">
-                    <svg class="absolute inset-0 w-full h-full pointer-events-none z-0">${svgContent}</svg>`;
-
-            // 繪製地圖節點
-            GAME_DATA.zones.forEach((zone, index) => {
-                const isUnlocked = unlockZone(zone.id);
-                const isCompleted = player.completedZones.includes(zone.id);
-                const isNext = isUnlocked && !isCompleted && player.role !== 'Guide'; // 書仙模式下沒有"下一個"的概念，全亮
-                
-                let iconHtml = '';
-                if(isCompleted && player.role !== 'Guide') iconHtml = '<i data-lucide="check-circle" class="w-8 h-8"></i>';
-                else if(!isUnlocked) iconHtml = '<i data-lucide="lock" class="w-6 h-6"></i>';
-                else iconHtml = `<i data-lucide="${zone.icon}" class="w-6 h-6"></i>`;
-
-                let classes = "w-16 h-16 rounded-full flex items-center justify-center border-4 shadow-xl transition-all duration-300 cursor-pointer ";
-                if (isCompleted && player.role !== 'Guide') classes += "bg-amber-100 border-amber-500 text-amber-600 scale-100 ";
-                else if (isNext) classes += "bg-amber-600 border-white text-white animate-pulse node-pulse ";
-                else if (!isUnlocked) classes += "bg-slate-700 border-slate-600 text-slate-500 grayscale ";
-                else if (player.role === 'Guide') classes += "bg-slate-800 border-amber-500 text-amber-500 scale-100 "; // 書仙模式下的節點樣式
-
-                html += `
-                <div onclick="showZonePopup('${zone.id}')" 
-                     class="absolute transform -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center group"
-                     style="top: ${zone.mapPos.top}; left: ${zone.mapPos.left};">
-                    <div class="${classes} hover:scale-110">
-                        ${iconHtml}
-                    </div>
-                    <div class="mt-2 px-3 py-1 rounded-full text-xs font-bold shadow-md ${isUnlocked ? 'bg-slate-800 text-amber-100 border border-amber-900/50' : 'bg-slate-800 text-slate-500 border border-slate-700'}">
-                        ${zone.name}
-                    </div>
-                </div>`;
-            });
-
-            // 關卡資訊彈窗
-            if (showZoneInfo) {
-                const zoneIdx = GAME_DATA.zones.findIndex(z => z.id === showZoneInfo.id);
-                const isCompleted = player.completedZones.includes(showZoneInfo.id);
-                
-                let actionButton = '';
-                if (player.role === 'Guide') {
-                    actionButton = `<button onclick="enterZone('${showZoneInfo.id}')" class="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white border-b-4 border-amber-800 rounded-lg font-bold shadow-md active:scale-95 flex items-center justify-center gap-2">
-                        <i data-lucide="book-open" class="w-4 h-4"></i> 查看攻略
-                    </button>`;
-                } else if (isCompleted) {
-                    actionButton = `<div class="w-full py-3 bg-green-900/50 border border-green-700 text-green-400 rounded-lg text-center font-bold flex items-center justify-center gap-2">
-                        <i data-lucide="check-circle" class="w-4 h-4"></i> 已攻略完成
-                    </div>`;
-                } else {
-                    actionButton = `<button onclick="enterZone('${showZoneInfo.id}')" class="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white border-b-4 border-amber-800 rounded-lg font-bold shadow-md active:scale-95">
-                        開始挑戰
-                    </button>`;
-                }
-
-                html += `
-                <div class="absolute bottom-4 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-96 bg-slate-900/95 backdrop-blur border border-amber-500/30 p-6 rounded-2xl shadow-2xl z-50 animate-slide-up">
-                    <div class="flex items-start justify-between mb-4">
-                        <div class="flex items-center gap-3">
-                            <div class="p-2 bg-slate-800 rounded-lg text-amber-500 border border-slate-700">
-                                <i data-lucide="${showZoneInfo.icon}"></i>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-4xl pb-4">
+                    ${CHARACTERS.map(c => `
+                    <button onclick="selectCharacter('${c.id}')" class="bg-slate-800 p-4 rounded-xl border-2 ${c.id==='book_immortal'?'border-amber-500/50 col-span-1 md:col-span-2':'border-slate-700 hover:border-amber-500'} text-left transition-all">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="p-2 rounded-full ${c.gender==='boy'?'bg-blue-900 text-blue-300':c.id==='book_immortal'?'bg-amber-900 text-amber-300':'bg-pink-900 text-pink-300'} flex items-center justify-center text-2xl h-12 w-12">
+                                ${c.avatar || (c.id === 'book_immortal' ? '📖' : '👤')}
                             </div>
-                            <div>
-                                <h3 class="text-xl font-bold text-white">${showZoneInfo.name}</h3>
-                                <p class="text-xs text-amber-200/70">建議等級: Lv.${zoneIdx + 1}</p>
-                            </div>
+                            <span class="text-lg font-bold text-white">${c.name}</span>
                         </div>
-                        <button onclick="closeZonePopup()" class="text-slate-400 hover:text-white">✕</button>
-                    </div>
-                    <p class="text-sm text-slate-300 mb-6 leading-relaxed">${showZoneInfo.description}</p>
-                    <div class="flex gap-3">
-                        ${actionButton}
-                    </div>
-                </div>`;
-            }
-
-            html += `</div></div>`;
-            return html;
-        }
-
-        function renderGuide() {
-            const content = GUIDE_DATA[currentZone.id] || '<p>尚無資料</p>';
-            return `
-            <div class="max-w-3xl mx-auto p-6 flex flex-col h-full gap-4 w-full animate-fade-in">
-                <div class="bg-slate-800 border-2 border-amber-600/50 rounded-xl p-6 shadow-2xl flex-1 relative overflow-hidden flex flex-col">
-                    <div class="absolute -right-4 -top-4 text-9xl opacity-5 select-none rotate-12">📖</div>
-                    
-                    <div class="flex items-center gap-4 border-b border-slate-700 pb-4 mb-4 z-10">
-                        <div class="p-3 bg-slate-900 rounded-full border border-amber-500/30 text-amber-400">
-                            <i data-lucide="book-open" class="w-8 h-8"></i>
-                        </div>
-                        <div>
-                            <h2 class="text-2xl font-bold text-white">地質天書</h2>
-                            <p class="text-sm text-amber-200/70">西寧書仙老頭的珍藏筆記</p>
-                        </div>
-                    </div>
-
-                    <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar z-10">
-                        ${content}
-                    </div>
-
-                    <div class="mt-6 pt-4 border-t border-slate-700 z-10">
-                        <button onclick="returnToMap()" class="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white border-b-4 border-slate-900 rounded-lg font-bold shadow-md active:scale-95">
-                            合上天書（返回地圖）
-                        </button>
-                    </div>
+                        <p class="text-sm text-slate-400 mb-2">${c.desc}</p>
+                        <div class="text-xs text-amber-400 font-bold"><i data-lucide="sparkles" class="inline w-3 h-3"></i> ${c.abilityName}</div>
+                    </button>`).join('')}
                 </div>
             </div>`;
         }
 
+        function renderMap() {
+            const world = GAME_DATA.worlds[currentWorldIndex];
+            let svg = '';
+            const normalZones = world.zones.filter(z => !z.id.startsWith('boss'));
+            const bossZone = world.zones.find(z => z.id.startsWith('boss'));
+            
+            for (let i=0; i<normalZones.length-1; i++) {
+                const s = normalZones[i].mapPos, e = normalZones[i+1].mapPos;
+                const unlocked = unlockZone(normalZones[i+1].id);
+                svg += `<line x1="${s.left}" y1="${s.top}" x2="${e.left}" y2="${e.top}" stroke="${unlocked?'#f59e0b':'#475569'}" stroke-width="4" stroke-dasharray="${unlocked?'0':'5,5'}" />`;
+            }
+            
+            if (bossZone && normalZones.length > 0) {
+                const lastNormal = normalZones[normalZones.length - 1];
+                const s = lastNormal.mapPos, e = bossZone.mapPos;
+                const unlocked = unlockZone(bossZone.id);
+                svg += `<line x1="${s.left}" y1="${s.top}" x2="${e.left}" y2="${e.top}" stroke="${unlocked?'#ef4444':'#475569'}" stroke-width="4" stroke-dasharray="${unlocked?'0':'5,5'}" />`;
+            }
+
+            let html = `<div class="relative w-full h-full overflow-hidden flex flex-col"><div class="absolute top-4 left-4 z-10 text-white font-bold text-xl drop-shadow-md">${world.title}</div><div class="relative flex-1 bg-grid-pattern"><svg class="absolute inset-0 w-full h-full pointer-events-none z-0">${svg}</svg>`;
+            
+            world.zones.forEach((z, i) => {
+                const unlocked = unlockZone(z.id), completed = player.completedZones.includes(z.id);
+                const isNext = unlocked && !completed && player.role !== 'Guide';
+                const isBoss = z.id.startsWith('boss');
+                let cls = "w-14 h-14 rounded-full flex items-center justify-center border-4 shadow-xl cursor-pointer transition-all ";
+                if (isBoss) cls += "w-16 h-16 "; 
+
+                if (completed && player.role!=='Guide') cls += "bg-amber-100 border-amber-500 text-amber-600 scale-100";
+                else if (isNext) cls += isBoss ? "bg-red-600 border-white text-white animate-pulse node-boss" : "bg-amber-600 border-white text-white animate-pulse node-pulse";
+                else if (!unlocked) cls += "bg-slate-700 border-slate-600 text-slate-500 grayscale";
+                else cls += isBoss ? "bg-red-900 border-red-500 text-red-500" : "bg-slate-800 border-amber-500 text-amber-500";
+
+                html += `<div onclick="showZonePopup('${z.id}')" class="absolute transform -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center" style="top:${z.mapPos.top};left:${z.mapPos.left}">
+                    <div class="${cls}"><i data-lucide="${completed && player.role!=='Guide' ? 'check-circle' : (!unlocked ? 'lock' : z.icon)}"></i></div>
+                    <div class="mt-1 px-2 py-0.5 rounded text-[10px] font-bold shadow bg-slate-900 border border-slate-700 text-slate-200 whitespace-nowrap">${z.name}</div>
+                </div>`;
+            });
+
+            if (showZoneInfo) {
+                const z = showZoneInfo, idx = world.zones.findIndex(x => x.id === z.id);
+                const btn = player.role === 'Guide' ? '查看攻略' : (player.completedZones.includes(z.id) ? '再次挑戰' : '開始挑戰');
+                const isBoss = z.id.startsWith('boss');
+                html += `<div class="absolute bottom-0 w-full bg-slate-900/95 border-t border-amber-500/30 p-6 rounded-t-2xl shadow-2xl z-50 animate-slide-up">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-slate-800 rounded-lg text-amber-500 border border-slate-700"><i data-lucide="${z.icon}"></i></div>
+                            <div><h3 class="text-xl font-bold ${isBoss ? 'text-red-500' : 'text-white'}">${z.name}</h3><p class="text-xs text-amber-200/70">Lv.${idx+1}</p></div>
+                        </div>
+                        <button onclick="closeZonePopup()" class="text-slate-400">✕</button>
+                    </div>
+                    <p class="text-sm text-slate-300 mb-4">${z.description || (isBoss ? '包含本世界所有題目的終極試煉！' : '準備好迎接挑戰了嗎？')}</p>
+                    <div class="flex flex-col gap-3">
+                        <button onclick="enterZone('${z.id}')" class="w-full py-3 ${isBoss ? 'bg-red-600 hover:bg-red-500' : 'bg-amber-600 hover:bg-amber-500'} text-white rounded-lg font-bold">${btn}</button>
+                        <button onclick="forgetClothes()" class="w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium text-sm">我只是忘了收衣服你等我</button>
+                    </div>
+                </div>`;
+            }
+            return html + `</div></div>`;
+        }
+
+        function renderGuide() {
+            return `<div class="p-6 h-full flex flex-col"><div class="bg-slate-800 border-2 border-amber-500/50 rounded-xl p-6 flex-1 flex flex-col shadow-2xl relative overflow-hidden">
+                <div class="flex items-center gap-3 border-b border-slate-700 pb-4 mb-4">
+                    <i data-lucide="book-open" class="text-amber-400 w-8 h-8"></i>
+                    <h2 class="text-2xl font-bold text-white">地質天書</h2>
+                </div>
+                <div class="flex-1 overflow-y-auto pr-2 text-slate-300 leading-relaxed text-sm">
+                    ${GUIDE_DATA[currentZone.id] || (currentZone.id.startsWith('boss') ? '<p>魔王關沒有攻略，這是對你綜合實力的考驗！</p>' : '無資料')}
+                </div>
+                <button onclick="returnToMap()" class="mt-4 w-full py-3 bg-slate-700 text-white rounded-lg font-bold">返回地圖</button>
+            </div></div>`;
+        }
+
         function renderBattle() {
-            if (!currentEnemy) return '';
-
-            // 計算血條百分比
-            const enemyHpPct = (currentEnemy.currentHp / currentEnemy.hp) * 100;
-            const playerHpPct = (player.hp / player.maxHp) * 100;
-
-            let logHtml = battleLog.map(l => `<div class="mb-1 border-l-2 border-slate-600 pl-2 text-base">${l}</div>`).join('');
-
-            return `
-            <div class="max-w-3xl mx-auto p-4 flex flex-col h-full gap-4 w-full">
-                <!-- 戰鬥資訊 -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-slate-800 border-2 border-slate-600 rounded-xl p-4 shadow-xl flex flex-col items-center justify-center relative overflow-hidden">
-                        <div class="absolute -right-4 -top-4 text-9xl opacity-5 select-none">👾</div>
-                        <div class="text-5xl mb-2 animate-bounce-custom z-10">👾</div>
-                        <h3 class="text-lg font-bold text-red-400 z-10">${currentEnemy.name}</h3>
-                        <div class="w-full z-10 mt-2">
-                            <div class="flex justify-between text-xs mb-1 text-slate-300 font-bold"><span>敵方 HP</span><span>${Math.ceil(currentEnemy.currentHp)}</span></div>
-                            <div class="w-full bg-slate-900 rounded-full h-3 border border-slate-600"><div class="h-full rounded-full bg-red-600 transition-all duration-500" style="width: ${Math.max(0, enemyHpPct)}%"></div></div>
-                        </div>
+            if (!currentQuestion) return '';
+            const eHp = (currentEnemy.currentHp/currentEnemy.hp)*100, pHp = (player.hp/player.maxHp)*100;
+            return `<div class="p-4 h-full flex flex-col gap-4 max-w-3xl mx-auto">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-800 p-3 rounded-xl border border-red-900/50 relative overflow-hidden">
+                        <div class="text-3xl mb-1 animate-bounce-custom">👾</div>
+                        <div class="font-bold text-red-400">${currentEnemy.name}</div>
+                        <div class="w-full bg-slate-900 h-2 rounded mt-1"><div class="bg-red-600 h-full rounded" style="width:${eHp}%"></div></div>
                     </div>
-                    <div class="bg-slate-800 border-2 border-slate-600 rounded-xl p-4 shadow-xl flex flex-col items-center justify-center relative overflow-hidden">
-                         <div class="absolute -left-4 -top-4 text-9xl opacity-5 select-none">🛡️</div>
-                        <div class="text-5xl mb-2 z-10">${(player.characterId === 'kegui' || player.characterId === 'peiyu') ? '🧙' : '⚔️'}</div>
-                        <h3 class="text-lg font-bold text-blue-400 z-10">${player.name}</h3>
-                        <div class="w-full z-10 mt-2">
-                            <div class="flex justify-between text-xs mb-1 text-slate-300 font-bold"><span>我方 HP</span><span>${player.hp}</span></div>
-                            <div class="w-full bg-slate-900 rounded-full h-3 border border-slate-600"><div class="h-full rounded-full bg-green-500 transition-all duration-500" style="width: ${Math.max(0, playerHpPct)}%"></div></div>
-                        </div>
+                    <div class="bg-slate-800 p-3 rounded-xl border border-blue-900/50 relative overflow-hidden">
+                        <div class="text-3xl mb-1">🛡️</div>
+                        <div class="font-bold text-blue-400">${player.name}</div>
+                        <div class="w-full bg-slate-900 h-2 rounded mt-1"><div class="bg-green-500 h-full rounded" style="width:${pHp}%"></div></div>
                     </div>
                 </div>
-
-                <!-- 戰鬥日誌 (高度增加至 h-40，字體變大) -->
-                <div id="battle-log-container" class="bg-black/40 p-3 rounded-lg h-40 overflow-y-auto text-base text-slate-300 font-mono border border-slate-700/50 shadow-inner">
-                    ${logHtml}
+                <div id="battle-log-container" class="bg-black/40 p-3 rounded-lg h-32 overflow-y-auto text-sm text-slate-300 font-mono border border-slate-700/50">
+                    ${battleLog.map(l=>`<div class="mb-1 border-l-2 border-slate-600 pl-2">${l}</div>`).join('')}
                 </div>
-
-                <!-- 問題區域 -->
-                <div class="bg-slate-800 border-2 border-slate-600 rounded-xl p-4 shadow-xl flex-1 flex flex-col justify-center animate-slide-up border-amber-600/30">
-                    <div class="mb-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <span class="inline-block px-3 py-1 bg-amber-900/50 border border-amber-700 text-amber-200 text-xs rounded-full flex items-center gap-1">
-                                <i data-lucide="shuffle" class="w-3 h-3"></i> 隨機題庫
-                            </span>
-                            <span class="text-slate-400 text-xs">累計答對: ${player.solvedQuestionIds.length}</span>
-                        </div>
-                        <h2 class="text-xl md:text-2xl font-bold text-white leading-relaxed">${currentQuestion.q}</h2>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        ${currentQuestion.shuffledOptions.map((opt, idx) => `
-                        <button onclick="handleAnswer(${idx})" class="group p-4 bg-slate-700 hover:bg-slate-600 border-l-4 border-slate-500 hover:border-amber-400 text-left text-slate-200 rounded-r-lg transition-all active:scale-95 flex items-center">
-                            <span class="w-8 h-8 rounded-full bg-slate-800 text-amber-500 font-bold flex items-center justify-center mr-3 group-hover:bg-amber-500 group-hover:text-white transition-colors">
-                                ${String.fromCharCode(65+idx)}
-                            </span>
-                            <span class="font-medium text-lg">${opt}</span>
-                        </button>`).join('')}
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-600 flex-1 flex flex-col justify-center">
+                    <div class="mb-4"><h2 class="text-lg font-bold text-white">${currentQuestion.q}</h2></div>
+                    <div class="grid grid-cols-1 gap-2">
+                        ${currentQuestion.shuffledOptions.map((o,i)=>`<button onclick="handleAnswer(${i})" class="p-3 bg-slate-700 hover:bg-slate-600 text-left rounded text-slate-100 font-medium active:scale-95 transition-transform"><span class="text-amber-500 mr-2 font-bold">${String.fromCharCode(65+i)}.</span>${o}</button>`).join('')}
                     </div>
                 </div>
             </div>`;
         }
 
         function renderVictory() {
-            return `
-            <div class="flex flex-col items-center justify-center h-full text-center space-y-6 animate-fade-in p-6">
-                <div class="bg-slate-800 p-8 rounded-2xl border-4 border-green-600 shadow-2xl max-w-md w-full relative overflow-hidden">
-                    <div class="absolute inset-0 bg-grid-pattern opacity-20"></div>
-                    <h1 class="text-4xl font-extrabold text-green-400 mb-4 z-10 relative">區域攻略成功！</h1>
-                    <div class="text-6xl mb-4 animate-bounce-custom z-10 relative">🏆</div>
-                    <p class="text-slate-300 mb-6 z-10 relative">你成功通過了 <span class="text-amber-400 font-bold">${currentZone.name}</span> 的考驗！</p>
-                    <div class="flex justify-center gap-4 mb-8 z-10 relative">
-                        <div class="bg-slate-900 p-3 rounded-lg border border-slate-700">
-                            <p class="text-xs text-slate-500 uppercase">XP 獲得</p>
-                            <p class="text-xl font-bold text-amber-400">大量!</p>
-                        </div>
-                        <div class="bg-slate-900 p-3 rounded-lg border border-slate-700">
-                            <p class="text-xs text-slate-500 uppercase">解鎖</p>
-                            <p class="text-xl font-bold text-blue-400">下一區域</p>
-                        </div>
-                    </div>
-                    <button onclick="returnToMap()" class="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white border-b-4 border-amber-800 rounded-lg font-bold shadow-md active:scale-95 z-10 relative">返回地圖</button>
+            return `<div class="flex flex-col items-center justify-center h-full p-6 text-center animate-fade-in">
+                <div class="text-6xl mb-4 animate-bounce-custom">🏆</div>
+                <h1 class="text-3xl font-bold text-green-400 mb-2">攻略成功！</h1>
+                <p class="text-slate-400 mb-8">你通過了 ${currentZone.name} 的試煉。</p>
+                <div class="flex gap-4">
+                    <button onclick="returnToMap()" class="px-8 py-3 bg-slate-600 text-white rounded-lg font-bold shadow-lg">返回地圖</button>
+                    ${player.role !== 'Guide' ? `<button onclick="uploadScore()" class="px-8 py-3 bg-amber-600 text-white rounded-lg font-bold shadow-lg animate-pulse">上傳戰績</button>` : ''}
                 </div>
             </div>`;
         }
 
         function renderGameOver() {
-            return `
-            <div class="flex flex-col items-center justify-center h-full text-center space-y-6 animate-fade-in p-6">
-                <div class="bg-slate-900 p-8 rounded-2xl border-4 border-red-800 shadow-2xl max-w-md w-full">
-                    <h1 class="text-4xl font-extrabold text-red-600 mb-4">探索失敗...</h1>
-                    <div class="text-6xl mb-4">☠️</div>
-                    <p class="text-slate-400 mb-6">你的體力已耗盡，無法繼續探索。</p>
-                    <p class="text-slate-500 text-sm mb-8">地質知識就是你的力量，下次請準備更充足再來吧！</p>
-                    <button onclick="restartGame()" class="w-full py-3 bg-red-800 hover:bg-red-700 text-white border-b-4 border-red-900 rounded-lg font-bold shadow-md active:scale-95">重新開始</button>
-                </div>
+            return `<div class="flex flex-col items-center justify-center h-full p-6 text-center animate-fade-in">
+                <div class="text-6xl mb-4">☠️</div>
+                <h1 class="text-3xl font-bold text-red-500 mb-2">探索失敗...</h1>
+                <button onclick="restartGame()" class="px-8 py-3 bg-red-800 text-white rounded-lg font-bold shadow-lg">重新開始</button>
             </div>`;
         }
 
-        // --- 初始化 ---
         renderApp();
-
     </script>
 </body>
 </html>
