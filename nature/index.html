@@ -94,8 +94,116 @@
                 desc: '亞馬遜的後裔，擅長防禦敵人的攻擊。',
                 abilityName: '戰鬥格擋', abilityDesc: '答錯時受到的傷害減少 5 點',
                 stats: { hp: 110, xpBonus: 1.0, dmgReduction: 5, healOnHit: 0 }
+            },
+            {
+                id: 'book_immortal', name: '西寧書仙老頭', gender: 'elder', role: 'Guide',
+                desc: '傳說中隱居在圖書館深處的老者，知曉所有地質奧祕。',
+                abilityName: '地質天書', abilityDesc: '無法戰鬥與答題，但能查看所有關卡的重點攻略。',
+                stats: { hp: 1, xpBonus: 0, dmgReduction: 0, healOnHit: 0 }
             }
         ];
+
+        // 攻略內容資料 (重點整理)
+        const GUIDE_DATA = {
+            'river': `
+                <h3 class="text-xl font-bold text-amber-400 mb-2">河流地形重點攻略</h3>
+                <ul class="list-disc pl-5 space-y-2 text-slate-300">
+                    <li><strong class="text-white">上游：</strong>河道窄、坡度陡、流速急。
+                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
+                            <li>作用力：侵蝕、搬運作用最強。</li>
+                            <li>景觀：V型谷、峽谷（太魯閣）、瀑布、壺穴。</li>
+                            <li>石頭：有稜有角的巨石。</li>
+                        </ul>
+                    </li>
+                    <li><strong class="text-white">中游：</strong>河道漸寬、坡度稍緩。
+                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
+                            <li>石頭：鵝卵石（經搬運碰撞磨圓）。</li>
+                            <li>曲流：
+                                <span class="text-red-400">凹岸</span>（水流急/侵蝕/水深）、
+                                <span class="text-green-400">凸岸</span>（水流慢/堆積/水淺）。
+                            </li>
+                        </ul>
+                    </li>
+                    <li><strong class="text-white">下游：</strong>河道寬、坡度平、流速慢。
+                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
+                            <li>作用力：堆積作用最強。</li>
+                            <li>石頭：泥沙、細石。</li>
+                            <li>景觀：沖積平原、三角洲、牛軛湖。</li>
+                        </ul>
+                    </li>
+                </ul>
+            `,
+            'coast': `
+                <h3 class="text-xl font-bold text-cyan-400 mb-2">海岸地形重點攻略</h3>
+                <ul class="list-disc pl-5 space-y-2 text-slate-300">
+                    <li><strong class="text-white">海蝕地形 (侵蝕作用)：</strong>
+                        <p class="text-sm text-slate-400 mt-1">成因：海浪拍打、磨蝕。</p>
+                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
+                            <li>豆腐岩（和平島）、蕈狀岩（女王頭-差異侵蝕）。</li>
+                            <li>海蝕洞 → 海蝕門（拱門） → 海蝕柱。</li>
+                            <li>海蝕溝（老梅綠石槽）、海蝕平臺、海蝕崖。</li>
+                        </ul>
+                    </li>
+                    <li><strong class="text-white">海積地形 (堆積作用)：</strong>
+                        <p class="text-sm text-slate-400 mt-1">成因：海浪搬運泥沙堆積。</p>
+                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
+                            <li>沙灘（福隆）、沙洲（離岸沙洲）。</li>
+                            <li>沙嘴、潟湖（七股）。</li>
+                            <li>陸連島（金樽）：連接小島與陸地的沙洲。</li>
+                        </ul>
+                    </li>
+                </ul>
+            `,
+            'rocks': `
+                <h3 class="text-xl font-bold text-gray-400 mb-2">岩石與礦物重點攻略</h3>
+                <ul class="list-disc pl-5 space-y-2 text-slate-300">
+                    <li><strong class="text-white">岩石分類：</strong>
+                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
+                            <li><span class="text-red-400">火成岩</span>（岩漿冷卻）：安山岩（廟宇石獅）、花崗岩（建材/有黑雲母）、玄武岩（氣孔/澎湖）。</li>
+                            <li><span class="text-yellow-400">沉積岩</span>（層狀堆積）：頁岩、砂岩、石灰岩（水泥原料/方解石/化石）。</li>
+                            <li><span class="text-blue-400">變質岩</span>（高溫高壓）：大理岩（變自石灰岩）、板岩（變自頁岩）、花崗片麻岩。</li>
+                        </ul>
+                    </li>
+                    <li><strong class="text-white">礦物硬度 (摩氏硬度)：</strong>
+                        <p class="text-sm text-slate-400 mt-1">滑石(1,最軟) < 石膏(2) < 指甲 < 方解石(3) < 銅幣 < 螢石 < 磷灰石 < 刀片/玻璃 < 正長石 < 石英(7) < 剛玉 < 金剛石(10,最硬)。</p>
+                    </li>
+                    <li><strong class="text-white">特性辨識：</strong>
+                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
+                            <li>方解石：滴稀鹽酸會冒泡。</li>
+                            <li>硫黃：黃色、火藥味。</li>
+                            <li>石墨：黑色、導電、鉛筆芯。</li>
+                            <li>滑石：滑膩感、爽身粉。</li>
+                        </ul>
+                    </li>
+                </ul>
+            `,
+            'disaster': `
+                <h3 class="text-xl font-bold text-red-400 mb-2">地震與防災重點攻略</h3>
+                <ul class="list-disc pl-5 space-y-2 text-slate-300">
+                    <li><strong class="text-white">地震成因：</strong>板塊擠壓錯動。</li>
+                    <li><strong class="text-white">名詞解釋：</strong>
+                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
+                            <li>震源：地底錯動的起始點。</li>
+                            <li>震央：震源正上方的地表位置。</li>
+                            <li>地震深度：震源到震央的垂直距離。</li>
+                        </ul>
+                    </li>
+                    <li><strong class="text-white">規模 vs 震度：</strong>
+                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
+                            <li><span class="text-yellow-400">芮氏規模</span>：能量大小，有小數點，無單位，全臺只有一個數值。</li>
+                            <li><span class="text-yellow-400">震度</span>：搖晃程度，分 0~4, 5弱, 5強, 6弱, 6強, 7 (共10級)，各地不同。</li>
+                        </ul>
+                    </li>
+                    <li><strong class="text-white">防災重點：</strong>
+                        <ul class="list-circle pl-4 mt-1 text-sm text-slate-400">
+                            <li>口訣：趴下、掩護、穩住。</li>
+                            <li>避難包：水、乾糧、手電筒、電池、證件、哨子（不放電動玩具）。</li>
+                            <li>家庭防災卡：約定緊急集合點與聯絡人。</li>
+                        </ul>
+                    </li>
+                </ul>
+            `
+        };
 
         const GAME_DATA = {
             zones: [
@@ -269,7 +377,7 @@
         };
 
         // --- 全域變數 (狀態管理) ---
-        let gameState = 'START'; // START, CHAR_SELECT, MAP, BATTLE, VICTORY, GAMEOVER
+        let gameState = 'START'; // START, CHAR_SELECT, MAP, BATTLE, VICTORY, GAMEOVER, GUIDE
         let player = {
             name: '', role: '', hp: 100, maxHp: 100, level: 1, xp: 0, maxXp: 50,
             items: [], completedZones: [], characterId: null, stats: {}, solvedQuestionIds: []
@@ -291,6 +399,9 @@
         }
 
         function unlockZone(zoneId) {
+            // 書仙老頭模式下，全關卡解鎖
+            if (player.characterId === 'book_immortal') return true;
+
             const index = GAME_DATA.zones.findIndex(z => z.id === zoneId);
             if (index === 0) return true;
             const prevZoneId = GAME_DATA.zones[index - 1].id;
@@ -304,6 +415,27 @@
             // 隨機抽選
             const randomIndex = Math.floor(Math.random() * availableQuestions.length);
             return availableQuestions[randomIndex];
+        }
+
+        // --- 選項洗牌功能 ---
+        function prepareQuestion(q) {
+            // 建立索引陣列 [0, 1, 2, 3]
+            let indices = q.options.map((_, i) => i);
+            // 洗牌索引
+            for (let i = indices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [indices[i], indices[j]] = [indices[j], indices[i]];
+            }
+            // 根據洗牌後的索引建立新選項
+            const shuffledOptions = indices.map(i => q.options[i]);
+            // 找出正確答案的新位置
+            const newCorrectIndex = indices.indexOf(q.a);
+            
+            return {
+                ...q,
+                shuffledOptions: shuffledOptions,
+                correctIndex: newCorrectIndex
+            };
         }
 
         // --- 遊戲邏輯與操作 ---
@@ -321,7 +453,14 @@
                 characterId: char.id, stats: char.stats, solvedQuestionIds: []
             };
             gameState = 'MAP';
-            battleLog = [`歡迎 ${char.name} 來到地質世界！`, `特殊能力：${char.abilityName} 已啟用！`];
+            
+            if (char.id === 'book_immortal') {
+                battleLog = [`歡迎書仙老頭！`, `已開啟「地質天書」攻略模式。`, `點擊關卡即可查看重點整理。`];
+                // 預先解鎖所有關卡，方便查閱
+                player.completedZones = GAME_DATA.zones.map(z => z.id);
+            } else {
+                battleLog = [`歡迎 ${char.name} 來到地質世界！`, `特殊能力：${char.abilityName} 已啟用！`];
+            }
             renderApp();
         }
 
@@ -342,9 +481,16 @@
             const zone = GAME_DATA.zones.find(z => z.id === zoneId);
             if (!unlockZone(zone.id)) return;
             currentZone = zone;
-            enemyIndex = 0;
             showZoneInfo = null;
-            startBattle(zone.enemies[0]);
+
+            // 如果是書仙老頭，進入攻略模式；否則進入戰鬥
+            if (player.characterId === 'book_immortal') {
+                gameState = 'GUIDE';
+                renderApp();
+            } else {
+                enemyIndex = 0;
+                startBattle(zone.enemies[0]);
+            }
         }
 
         function startBattle(enemy) {
@@ -358,7 +504,7 @@
             }
 
             currentEnemy = { ...enemy, currentHp: enemy.hp };
-            currentQuestion = startQ;
+            currentQuestion = prepareQuestion(startQ); // 洗牌選項
             questionCountInBattle = 0;
             gameState = 'BATTLE';
             battleLog.push(`遭遇敵人：${enemy.name}！`);
@@ -369,7 +515,8 @@
 
         function handleAnswer(optionIndex) {
             if (!currentQuestion) return;
-            const isCorrect = optionIndex === currentQuestion.a;
+            // 檢查是否為正確答案 (使用洗牌後的正確索引)
+            const isCorrect = optionIndex === currentQuestion.correctIndex;
 
             if (isCorrect) {
                 // 對敵人造成傷害
@@ -409,10 +556,10 @@
                     handleEnemyDefeat(currentEnemy);
                 } else {
                     // 下一題
-                    const nextQ = getUnsolvedQuestion(GAME_DATA.zones.find(z => z.id === currentZone.id).enemies[enemyIndex]);
-                    if (nextQ) {
+                    const nextQRaw = getUnsolvedQuestion(GAME_DATA.zones.find(z => z.id === currentZone.id).enemies[enemyIndex]);
+                    if (nextQRaw) {
                         setTimeout(() => {
-                            currentQuestion = nextQ;
+                            currentQuestion = prepareQuestion(nextQRaw); // 洗牌選項
                             questionCountInBattle++;
                             renderApp();
                         }, 1000);
@@ -428,6 +575,7 @@
                 player.hp -= dmg;
                 addLog(`❌ 錯誤！受傷 ${dmg} 點。`);
                 if (player.stats.dmgReduction > 0) addLog(`🛡️ 傷害減少了 ${player.stats.dmgReduction}！`);
+                // 顯示正確答案 (注意：options 是原始選項陣列，q.a 是原始索引)
                 addLog(`正解：${currentQuestion.options[currentQuestion.a]}`);
                 
                 if (player.hp <= 0) {
@@ -537,6 +685,9 @@
                 case 'GAMEOVER':
                     content += renderGameOver();
                     break;
+                case 'GUIDE':
+                    content += renderGuide();
+                    break;
             }
 
             content += `</main>`;
@@ -572,22 +723,30 @@
             <div class="flex flex-col items-center justify-center min-h-full p-6 bg-slate-900 animate-fade-in">
                 <h2 class="text-3xl font-bold text-amber-400 mb-2">選擇你的角色</h2>
                 <p class="text-slate-400 mb-8">每個角色都有獨特的優勢，請謹慎選擇！</p>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl w-full">`;
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl w-full">`; // Reduced gap
             
             CHARACTERS.forEach(char => {
-                const iconColor = char.gender === 'boy' ? 'text-blue-300 bg-blue-900' : 'text-pink-300 bg-pink-900';
+                let iconColor, iconName;
+                if (char.id === 'book_immortal') {
+                    iconColor = 'text-amber-200 bg-amber-900';
+                    iconName = 'book-open';
+                } else {
+                    iconColor = char.gender === 'boy' ? 'text-blue-300 bg-blue-900' : 'text-pink-300 bg-pink-900';
+                    iconName = 'user';
+                }
+
                 html += `
-                <button onclick="selectCharacter('${char.id}')" class="flex flex-col text-left bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 hover:border-amber-500 rounded-xl p-4 transition-all group active:scale-95">
-                    <div class="flex items-center gap-4 mb-3 border-b border-slate-700 pb-3 w-full">
+                <button onclick="selectCharacter('${char.id}')" class="flex flex-col text-left bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 hover:border-amber-500 rounded-xl p-3 transition-all group active:scale-95 ${char.id === 'book_immortal' ? 'md:col-span-2 border-amber-800/50' : ''}">
+                    <div class="flex items-center gap-4 mb-2 border-b border-slate-700 pb-2 w-full">
                         <div class="p-3 rounded-full ${iconColor}">
-                            <i data-lucide="user" class="w-6 h-6"></i>
+                            <i data-lucide="${iconName}" class="w-6 h-6"></i>
                         </div>
                         <div>
                             <h3 class="text-xl font-bold text-white group-hover:text-amber-400">${char.name}</h3>
                             <span class="text-xs px-2 py-0.5 rounded bg-slate-900 text-slate-400">${char.role}</span>
                         </div>
                     </div>
-                    <div class="flex-1 space-y-2 mb-4 w-full">
+                    <div class="flex-1 space-y-1 mb-2 w-full">
                         <p class="text-sm text-slate-300">${char.desc}</p>
                         <div class="bg-slate-900/50 p-2 rounded border border-slate-700/50">
                             <div class="flex items-center gap-2 text-amber-400 font-bold text-sm mb-1">
@@ -596,9 +755,10 @@
                             <p class="text-xs text-slate-400">${char.abilityDesc}</p>
                         </div>
                     </div>
+                    ${char.id !== 'book_immortal' ? `
                     <div class="flex gap-2 text-xs font-mono text-slate-500 mt-auto">
                         <span class="flex items-center gap-1"><i data-lucide="heart" class="w-3 h-3"></i> HP ${char.stats.hp}</span>
-                    </div>
+                    </div>` : ''}
                 </button>`;
             });
 
@@ -612,7 +772,8 @@
             for (let i = 0; i < GAME_DATA.zones.length - 1; i++) {
                 const start = GAME_DATA.zones[i].mapPos;
                 const end = GAME_DATA.zones[i+1].mapPos;
-                const isUnlocked = player.completedZones.includes(GAME_DATA.zones[i].id);
+                // Corrected line below: passing the ID of the next zone to unlockZone
+                const isUnlocked = unlockZone(GAME_DATA.zones[i+1].id); 
                 const stroke = isUnlocked ? "#f59e0b" : "#475569";
                 const dash = isUnlocked ? "0" : "5,5";
                 
@@ -625,15 +786,16 @@
                 <div class="bg-slate-900 border-b border-slate-700 p-2 flex justify-between items-center z-20 shadow-lg">
                     <div class="flex items-center gap-2">
                         <div class="bg-slate-800 p-1.5 rounded-full border border-slate-600">
-                             <div class="font-bold text-xs ${player.role === 'Mage' ? 'text-purple-400' : 'text-red-400'} w-4 h-4 text-center flex items-center justify-center">${player.name.substring(0,1)}</div>
+                             <div class="font-bold text-xs ${player.role === 'Mage' ? 'text-purple-400' : (player.role === 'Guide' ? 'text-amber-400' : 'text-red-400')} w-4 h-4 text-center flex items-center justify-center">${player.name.substring(0,1)}</div>
                         </div>
                         <div class="flex flex-col">
                             <div class="text-xs text-slate-400 leading-none">${player.name}</div>
-                            <div class="text-sm font-bold text-slate-200 leading-none">Lv.${player.level}</div>
+                            <div class="text-sm font-bold text-slate-200 leading-none">${player.role === 'Guide' ? '攻略模式' : `Lv.${player.level}`}</div>
                         </div>
+                        ${player.role !== 'Guide' ? `
                         <div class="w-20 h-2 bg-slate-800 rounded-full border border-slate-600 overflow-hidden ml-2">
                             <div class="bg-amber-500 h-full" style="width: ${(player.xp/player.maxXp)*100}%"></div>
-                        </div>
+                        </div>` : ''}
                     </div>
                     <div class="flex gap-2">
                         ${player.items.length > 0 ? `
@@ -651,17 +813,18 @@
             GAME_DATA.zones.forEach((zone, index) => {
                 const isUnlocked = unlockZone(zone.id);
                 const isCompleted = player.completedZones.includes(zone.id);
-                const isNext = isUnlocked && !isCompleted;
+                const isNext = isUnlocked && !isCompleted && player.role !== 'Guide'; // 書仙模式下沒有"下一個"的概念，全亮
                 
                 let iconHtml = '';
-                if(isCompleted) iconHtml = '<i data-lucide="check-circle" class="w-8 h-8"></i>';
+                if(isCompleted && player.role !== 'Guide') iconHtml = '<i data-lucide="check-circle" class="w-8 h-8"></i>';
                 else if(!isUnlocked) iconHtml = '<i data-lucide="lock" class="w-6 h-6"></i>';
                 else iconHtml = `<i data-lucide="${zone.icon}" class="w-6 h-6"></i>`;
 
                 let classes = "w-16 h-16 rounded-full flex items-center justify-center border-4 shadow-xl transition-all duration-300 cursor-pointer ";
-                if (isCompleted) classes += "bg-amber-100 border-amber-500 text-amber-600 scale-100 ";
+                if (isCompleted && player.role !== 'Guide') classes += "bg-amber-100 border-amber-500 text-amber-600 scale-100 ";
                 else if (isNext) classes += "bg-amber-600 border-white text-white animate-pulse node-pulse ";
                 else if (!isUnlocked) classes += "bg-slate-700 border-slate-600 text-slate-500 grayscale ";
+                else if (player.role === 'Guide') classes += "bg-slate-800 border-amber-500 text-amber-500 scale-100 "; // 書仙模式下的節點樣式
 
                 html += `
                 <div onclick="showZonePopup('${zone.id}')" 
@@ -681,6 +844,21 @@
                 const zoneIdx = GAME_DATA.zones.findIndex(z => z.id === showZoneInfo.id);
                 const isCompleted = player.completedZones.includes(showZoneInfo.id);
                 
+                let actionButton = '';
+                if (player.role === 'Guide') {
+                    actionButton = `<button onclick="enterZone('${showZoneInfo.id}')" class="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white border-b-4 border-amber-800 rounded-lg font-bold shadow-md active:scale-95 flex items-center justify-center gap-2">
+                        <i data-lucide="book-open" class="w-4 h-4"></i> 查看攻略
+                    </button>`;
+                } else if (isCompleted) {
+                    actionButton = `<div class="w-full py-3 bg-green-900/50 border border-green-700 text-green-400 rounded-lg text-center font-bold flex items-center justify-center gap-2">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i> 已攻略完成
+                    </div>`;
+                } else {
+                    actionButton = `<button onclick="enterZone('${showZoneInfo.id}')" class="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white border-b-4 border-amber-800 rounded-lg font-bold shadow-md active:scale-95">
+                        開始挑戰
+                    </button>`;
+                }
+
                 html += `
                 <div class="absolute bottom-4 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-96 bg-slate-900/95 backdrop-blur border border-amber-500/30 p-6 rounded-2xl shadow-2xl z-50 animate-slide-up">
                     <div class="flex items-start justify-between mb-4">
@@ -697,20 +875,43 @@
                     </div>
                     <p class="text-sm text-slate-300 mb-6 leading-relaxed">${showZoneInfo.description}</p>
                     <div class="flex gap-3">
-                        ${isCompleted ? 
-                        `<div class="w-full py-3 bg-green-900/50 border border-green-700 text-green-400 rounded-lg text-center font-bold flex items-center justify-center gap-2">
-                             <i data-lucide="check-circle" class="w-4 h-4"></i> 已攻略完成
-                         </div>` : 
-                        `<button onclick="enterZone('${showZoneInfo.id}')" class="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white border-b-4 border-amber-800 rounded-lg font-bold shadow-md active:scale-95">
-                            開始挑戰
-                         </button>`
-                        }
+                        ${actionButton}
                     </div>
                 </div>`;
             }
 
             html += `</div></div>`;
             return html;
+        }
+
+        function renderGuide() {
+            const content = GUIDE_DATA[currentZone.id] || '<p>尚無資料</p>';
+            return `
+            <div class="max-w-3xl mx-auto p-6 flex flex-col h-full gap-4 w-full animate-fade-in">
+                <div class="bg-slate-800 border-2 border-amber-600/50 rounded-xl p-6 shadow-2xl flex-1 relative overflow-hidden flex flex-col">
+                    <div class="absolute -right-4 -top-4 text-9xl opacity-5 select-none rotate-12">📖</div>
+                    
+                    <div class="flex items-center gap-4 border-b border-slate-700 pb-4 mb-4 z-10">
+                        <div class="p-3 bg-slate-900 rounded-full border border-amber-500/30 text-amber-400">
+                            <i data-lucide="book-open" class="w-8 h-8"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-white">地質天書</h2>
+                            <p class="text-sm text-amber-200/70">西寧書仙老頭的珍藏筆記</p>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar z-10">
+                        ${content}
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-slate-700 z-10">
+                        <button onclick="returnToMap()" class="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white border-b-4 border-slate-900 rounded-lg font-bold shadow-md active:scale-95">
+                            合上天書（返回地圖）
+                        </button>
+                    </div>
+                </div>
+            </div>`;
         }
 
         function renderBattle() {
@@ -720,7 +921,7 @@
             const enemyHpPct = (currentEnemy.currentHp / currentEnemy.hp) * 100;
             const playerHpPct = (player.hp / player.maxHp) * 100;
 
-            let logHtml = battleLog.map(l => `<div class="mb-1 border-l-2 border-slate-600 pl-2">${l}</div>`).join('');
+            let logHtml = battleLog.map(l => `<div class="mb-1 border-l-2 border-slate-600 pl-2 text-base">${l}</div>`).join('');
 
             return `
             <div class="max-w-3xl mx-auto p-4 flex flex-col h-full gap-4 w-full">
@@ -746,8 +947,8 @@
                     </div>
                 </div>
 
-                <!-- 戰鬥日誌 -->
-                <div id="battle-log-container" class="bg-black/40 p-3 rounded-lg h-24 overflow-y-auto text-sm text-slate-300 font-mono border border-slate-700/50 shadow-inner">
+                <!-- 戰鬥日誌 (高度增加至 h-40，字體變大) -->
+                <div id="battle-log-container" class="bg-black/40 p-3 rounded-lg h-40 overflow-y-auto text-base text-slate-300 font-mono border border-slate-700/50 shadow-inner">
                     ${logHtml}
                 </div>
 
@@ -763,12 +964,12 @@
                         <h2 class="text-xl md:text-2xl font-bold text-white leading-relaxed">${currentQuestion.q}</h2>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        ${currentQuestion.options.map((opt, idx) => `
+                        ${currentQuestion.shuffledOptions.map((opt, idx) => `
                         <button onclick="handleAnswer(${idx})" class="group p-4 bg-slate-700 hover:bg-slate-600 border-l-4 border-slate-500 hover:border-amber-400 text-left text-slate-200 rounded-r-lg transition-all active:scale-95 flex items-center">
                             <span class="w-8 h-8 rounded-full bg-slate-800 text-amber-500 font-bold flex items-center justify-center mr-3 group-hover:bg-amber-500 group-hover:text-white transition-colors">
                                 ${String.fromCharCode(65+idx)}
                             </span>
-                            <span class="font-medium">${opt}</span>
+                            <span class="font-medium text-lg">${opt}</span>
                         </button>`).join('')}
                     </div>
                 </div>
