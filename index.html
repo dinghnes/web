@@ -72,6 +72,21 @@
                     <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
             </div>
+
+            <!-- 螢幕恆亮開關 -->
+            <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors">
+                <div class="flex items-center">
+                    <i class="fas fa-lightbulb text-orange-500 mr-3 text-xl w-6 text-center"></i>
+                    <div>
+                        <span class="block text-sm font-bold text-gray-700">保持螢幕恆亮</span>
+                        <p class="text-xs text-gray-500">防止電腦休眠導致提醒失效</p>
+                    </div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="wakelock-toggle" class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                </label>
+            </div>
             
             <!-- 快速連結與測試 -->
             <div class="grid grid-cols-2 gap-3">
@@ -87,7 +102,7 @@
 
         <!-- 狀態顯示 -->
         <div id="status-msg" class="mt-6 text-center text-sm text-gray-500 bg-blue-50 py-2 rounded border border-blue-100 flex items-center justify-center gap-2">
-            <i class="fas fa-spinner fa-spin text-blue-400"></i> <span>正在監控時間中...</span>
+            <i class="fas fa-microchip text-blue-400"></i> <span>防休眠核心運作中...</span>
         </div>
 
         <div class="mt-6 text-xs text-gray-400 text-center space-y-1">
@@ -126,6 +141,7 @@
         const dateElement = document.getElementById('current-date');
         const targetTimeInput = document.getElementById('target-time');
         const soundToggle = document.getElementById('sound-toggle');
+        const wakelockToggle = document.getElementById('wakelock-toggle');
         const statusMsg = document.getElementById('status-msg');
         const alarmModal = document.getElementById('alarm-modal');
         const popupBlockedMsg = document.getElementById('popup-blocked-msg');
@@ -133,6 +149,7 @@
         let alarmTriggeredToday = false;
         let audioCtx = null;
         let titleInterval = null;
+        let wakeLock = null;
         const originalTitle = document.title;
         const targetUrl = "https://pemis.taichung.gov.tw/index.aspx";
 
@@ -142,6 +159,75 @@
                 Notification.requestPermission();
             }
         }
+
+        // --- Web Worker 機制 (防休眠核心) ---
+        // 將 Worker 程式碼轉為 Blob，避免需要外部檔案
+        const workerCode = `
+            self.onmessage = function(e) {
+                if (e.data === 'start') {
+                    setInterval(() => {
+                        self.postMessage('tick');
+                    }, 1000);
+                }
+            };
+        `;
+        const blob = new Blob([workerCode], { type: "text/javascript" });
+        const worker = new Worker(URL.createObjectURL(blob));
+
+        // 接收 Worker 的訊號並更新時鐘
+        worker.onmessage = function(e) {
+            if (e.data === 'tick') {
+                updateClock();
+            }
+        };
+        // 啟動 Worker
+        worker.postMessage('start');
+
+
+        // --- Wake Lock API (螢幕恆亮) ---
+        async function requestWakeLock() {
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                statusMsg.innerHTML = '<i class="fas fa-lightbulb text-orange-500"></i> <span>螢幕恆亮模式：開啟</span>';
+                
+                wakeLock.addEventListener('release', () => {
+                    // 如果被系統釋放（例如切換分頁太久），嘗試重新獲取
+                    if (wakelockToggle.checked) {
+                        statusMsg.innerHTML = '<i class="fas fa-exclamation-circle text-gray-500"></i> <span>恆亮被中斷，嘗試恢復...</span>';
+                    } else {
+                        statusMsg.innerHTML = '<i class="fas fa-microchip text-blue-400"></i> <span>防休眠核心運作中...</span>';
+                    }
+                });
+            } catch (err) {
+                console.error(`${err.name}, ${err.message}`);
+                statusMsg.innerHTML = '<i class="fas fa-times-circle text-red-500"></i> <span>瀏覽器不支援恆亮</span>';
+                wakelockToggle.checked = false;
+            }
+        }
+
+        function releaseWakeLock() {
+            if (wakeLock !== null) {
+                wakeLock.release();
+                wakeLock = null;
+            }
+            statusMsg.innerHTML = '<i class="fas fa-microchip text-blue-400"></i> <span>防休眠核心運作中...</span>';
+        }
+
+        wakelockToggle.addEventListener('change', function() {
+            if (this.checked) {
+                requestWakeLock();
+            } else {
+                releaseWakeLock();
+            }
+        });
+
+        // 頁面可見性改變時重新獲取 Wake Lock
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
+
 
         // 標題閃爍功能
         function startTitleFlash(text) {
@@ -217,7 +303,7 @@
             // 3. 瀏覽器系統通知
             if (Notification.permission === "granted") {
                 const notify = new Notification("簽退提醒", {
-                    body: isTest ? "這是測試提醒！" : "時間到了！請前往台中市學校差勤系統簽退。",
+                    body: isTest ? "這是測試提醒！" : "時間到了！請前往台中市政府人事系統簽退。",
                     icon: "https://pemis.taichung.gov.tw/favicon.ico",
                     requireInteraction: true
                 });
@@ -294,20 +380,17 @@
                     const targetDate = new Date();
                     targetDate.setHours(parseInt(targetParts[0]), parseInt(targetParts[1]), 0);
                     
-                    if (now < targetDate) {
-                        statusMsg.innerHTML = `<i class="fas fa-hourglass-half text-blue-500"></i> <span>等待 ${targetTime} 提醒中...</span>`;
-                    } else {
-                        statusMsg.innerHTML = `<i class="fas fa-moon text-gray-400"></i> <span>今日提醒時間已過</span>`;
+                    // 只有在非恆亮模式下才更新狀態，避免蓋過恆亮狀態
+                    if (!wakeLock) {
+                        if (now < targetDate) {
+                            statusMsg.innerHTML = `<i class="fas fa-hourglass-half text-blue-500"></i> <span>等待 ${targetTime} 提醒中...</span>`;
+                        } else {
+                            statusMsg.innerHTML = `<i class="fas fa-moon text-gray-400"></i> <span>今日提醒時間已過</span>`;
+                        }
                     }
                 }
             }
         }
-
-        // 每秒更新
-        setInterval(updateClock, 1000);
-        updateClock(); 
-
     </script>
 </body>
-
 </html>
